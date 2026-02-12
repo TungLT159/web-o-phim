@@ -1,0 +1,342 @@
+@use "../../scss/" as *;
+
+.banner {
+  height: 50vh;
+  position: relative;
+  background: center/cover no-repeat;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    @include overlay();
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-end: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(to top, $body-bg, rgba($black, 0));
+  }
+}
+
+.container {
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline: 15px;
+  overflow-x: hidden;
+}
+
+.movie-content {
+  @include flex(flex-start, flex-start);
+  max-width: 1260px;
+  margin: -200px auto 0;
+  padding-inline: 2rem;
+  position: relative;
+  margin-bottom: 3rem;
+
+  &__poster {
+    flex: 0 0 auto;
+    max-width: 300px;
+    width: 100%;
+
+    @include mobile {
+      display: none;
+    }
+
+    &__img {
+      width: 100%;
+      aspect-ratio: 2/3;
+      background: center/cover no-repeat;
+      border-radius: $border-radius;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  &__info {
+    flex: 1;
+    padding-left: 2rem;
+
+    @include mobile {
+      width: 100%;
+      padding-left: 0;
+      text-align: center;
+    }
+
+    & > * {
+      margin-bottom: 2rem;
+    }
+
+    .title {
+      font-size: 4rem;
+      line-height: 1;
+
+      @include tablet {
+        font-size: 2.5rem;
+      }
+
+      @include mobile {
+        font-size: 1.8rem;
+      }
+    }
+
+    .genres {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+
+      &__item {
+        padding: 0.5rem 1.5rem;
+        border: 2px solid $white;
+        border-radius: $border-radius;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background-color: $body-bg;
+      }
+    }
+
+    .movie-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+
+      .tag {
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: #222;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+
+        @include mobile {
+          font-size: 12px;
+          padding: 3px 8px;
+        }
+      }
+    }
+  }
+}
+
+.casts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+
+  &__item {
+    &__img {
+      padding-top: 160px;
+      background-size: cover;
+      margin-bottom: 0.5rem;
+      border-radius: 6px;
+    }
+
+    &__name {
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  }
+}
+
+.watch-section {
+  margin-bottom: 30px;
+
+  .video-player {
+    width: 100%;
+    margin-bottom: 20px;
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%; // 16:9
+
+      iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+      }
+    }
+  }
+
+  .episode-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-start;
+
+    &.many {
+      justify-content: space-between;
+    }
+  }
+
+  .episode-btn {
+    flex: 1 0 calc(10% - 10px);
+    min-width: 60px;
+    max-width: 120px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background: #444;
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.3s;
+
+    &.active {
+      background: #ff3d71;
+    }
+
+    &:hover {
+      background: #ff3d71;
+    }
+
+    @include mobile {
+      flex: 1 0 calc(20% - 8px);
+      min-width: 40px;
+      max-width: 70px;
+      font-size: 12px;
+      padding: 6px;
+    }
+  }
+}
+
+/* Responsive tablet */
+@include tablet {
+  .movie-content {
+    flex-direction: column;
+    align-items: center;
+    margin-top: -100px;
+
+    &__poster {
+      display: block;
+      width: 60%;
+      margin-bottom: 20px;
+    }
+
+    &__info {
+      width: 100%;
+      padding-left: 0;
+      text-align: center;
+    }
+  }
+
+  .watch-section .video-player .video-wrapper {
+    padding-top: 60%;
+  }
+}
+
+
+/* Responsive mobile */
+@include mobile {
+  .movie-content {
+    margin-top: -60px;
+    padding-inline: 1rem;
+
+    &__poster {
+      width: 100%;
+      margin-bottom: 15px;
+      display: block;
+    }
+  }
+
+  .watch-section .video-player .video-wrapper {
+    padding-top: 70%; // video cao hơn cho mobile
+  }
+}
+@media (hover: none) and (pointer: coarse) {
+  button:hover {
+    background: none;
+    color: unset;
+  }
+}
+.episode-scroll {
+  margin-top: 1rem;
+
+  // Scroll mặc định
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 3px;
+  }
+
+  .episode-list {
+    display: inline-flex;
+    gap: 10px;
+    padding-bottom: 6px;
+
+    .episode-btn {
+      flex: 0 0 auto;
+      min-width: 60px;
+      padding: 8px 12px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: #222;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.25s ease;
+
+      &.active {
+        background: #e50914;
+        border-color: #e50914;
+      }
+
+      &:hover {
+        background: #ff3d71;
+      }
+    }
+  }
+
+  // ✅ Tablet & Desktop: giữ nguyên auto-fill grid
+  @media (min-width: 768px) {
+    max-height: 320px;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    .episode-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 10px;
+      white-space: normal;
+
+      .episode-btn {
+        width: 100%;
+        padding: 10px 0;
+        font-size: 14px;
+      }
+    }
+  }
+
+  // ✅ Mobile: auto-fill gọn gàng (4–6 nút 1 hàng)
+  @media (max-width: 767px) {
+    overflow-x: hidden; // bỏ scroll ngang, dùng grid
+    .episode-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+      gap: 8px;
+      white-space: normal;
+
+      .episode-btn {
+        width: 100%;
+        padding: 6px 0;
+        font-size: 12px;
+      }
+    }
+  }
+}
+  
