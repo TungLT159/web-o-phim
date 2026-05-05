@@ -19,11 +19,13 @@ const MovieCard = (props) => {
     const fetchImage = async () => {
       if (!item) return;
       try {
-        const apiKey = process.env.REACT_APP_TMDB_API_KEY;
+        // const apiKey = process.env.REACT_APP_TMDB_API_KEY;
+        const apiKey = "2724d844032ce6b2526dad06a0936a6e";
+
         const response = await axiosClient.get(
           `https://api.themoviedb.org/3/${
             item.tmdb.type ? item.tmdb.type : "movie"
-          }/${item.tmdb.id}?api_key=${apiKey}&language=vi-VN`
+          }/${item.tmdb.id}?api_key=${apiKey}&language=vi-VN`,
         );
         // console.log(response);
         if (response.poster_path == null) {

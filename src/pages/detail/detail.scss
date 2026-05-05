@@ -1,28 +1,51 @@
 @use "../../scss/" as *;
 
+/* ================= BANNER SECTION ================= */
 .banner {
-  height: 50vh;
+  height: 60vh;
+  min-height: 400px;
   position: relative;
   background: center/cover no-repeat;
+  overflow: hidden;
 
+  // Dark overlay for better text readability
   &::before {
     content: "";
     position: absolute;
     inset: 0;
-    @include overlay();
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.3) 0%,
+      rgba(0, 0, 0, 0.6) 50%,
+      rgba(15, 15, 15, 0.95) 100%
+    );
+    z-index: 1;
   }
 
+  // Bottom fade to content
   &::after {
     content: "";
     position: absolute;
     inset-inline-start: 0;
     inset-block-end: 0;
     width: 100%;
-    height: 100px;
-    background: linear-gradient(to top, $body-bg, rgba($black, 0));
+    height: 150px;
+    background: linear-gradient(to top, $body-bg, transparent);
+    z-index: 2;
+  }
+
+  @include tablet {
+    height: 50vh;
+    min-height: 350px;
+  }
+
+  @include mobile {
+    height: 40vh;
+    min-height: 280px;
   }
 }
 
+/* ================= CONTAINER ================= */
 .container {
   max-width: 100%;
   margin-inline: auto;
@@ -30,18 +53,21 @@
   overflow-x: hidden;
 }
 
+/* ================= MOVIE CONTENT SECTION ================= */
 .movie-content {
   @include flex(flex-start, flex-start);
-  max-width: 1260px;
-  margin: -200px auto 0;
-  padding-inline: 2rem;
+  max-width: 1400px;
+  margin: -220px auto 0;
+  padding-inline: 3rem;
   position: relative;
-  margin-bottom: 3rem;
+  margin-bottom: 4rem;
+  z-index: 10;
 
   &__poster {
     flex: 0 0 auto;
-    max-width: 300px;
+    max-width: 320px;
     width: 100%;
+    position: relative;
 
     @include mobile {
       display: none;
@@ -51,14 +77,41 @@
       width: 100%;
       aspect-ratio: 2/3;
       background: center/cover no-repeat;
-      border-radius: $border-radius;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6),
+                  0 0 0 1px rgba(255, 255, 255, 0.1);
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+
+      // Shimmer effect
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          110deg,
+          transparent 0%,
+          transparent 40%,
+          rgba(255, 255, 255, 0.15) 50%,
+          transparent 60%,
+          transparent 100%
+        );
+        transform: translateX(-100%);
+        animation: shimmer 3s infinite;
+      }
+
+      &:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7),
+                    0 0 0 2px rgba(255, 61, 113, 0.3);
+      }
     }
   }
 
   &__info {
     flex: 1;
-    padding-left: 2rem;
+    padding-left: 3rem;
 
     @include mobile {
       width: 100%;
@@ -71,152 +124,126 @@
     }
 
     .title {
-      font-size: 4rem;
-      line-height: 1;
+      font-size: 3.5rem;
+      line-height: 1.1;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, #ff3d71 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.5rem;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 
       @include tablet {
         font-size: 2.5rem;
       }
 
       @include mobile {
-        font-size: 1.8rem;
+        font-size: 2rem;
+        margin-bottom: 1rem;
       }
     }
 
     .genres {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+
+      @include mobile {
+        justify-content: center;
+      }
 
       &__item {
-        padding: 0.5rem 1.5rem;
-        border: 2px solid $white;
-        border-radius: $border-radius;
-        font-size: 0.8rem;
+        padding: 0.6rem 1.5rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50px;
+        font-size: 0.9rem;
         font-weight: 600;
-        background-color: $body-bg;
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(8px);
+
+        &:hover {
+          border-color: #ff3d71;
+          background: rgba(255, 61, 113, 0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 61, 113, 0.3);
+        }
+
+        @include mobile {
+          font-size: 0.8rem;
+          padding: 0.5rem 1.2rem;
+        }
       }
     }
 
     .movie-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+
+      @include mobile {
+        justify-content: center;
+        gap: 8px;
+      }
 
       .tag {
-        padding: 4px 10px;
-        border-radius: 6px;
-        background: #222;
+        padding: 8px 16px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(255, 61, 113, 0.15) 0%, rgba(229, 9, 20, 0.1) 100%);
         color: #fff;
         font-size: 14px;
-        font-weight: 500;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-weight: 600;
+        border: 1px solid rgba(255, 61, 113, 0.3);
+        backdrop-filter: blur(8px);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        &:hover {
+          background: linear-gradient(135deg, rgba(255, 61, 113, 0.25) 0%, rgba(229, 9, 20, 0.2) 100%);
+          border-color: rgba(255, 61, 113, 0.5);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 61, 113, 0.3);
+        }
 
         @include mobile {
           font-size: 12px;
-          padding: 3px 8px;
+          padding: 6px 12px;
         }
       }
     }
-  }
-}
 
-.casts {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-  gap: 10px;
+    .overview {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 2rem;
+      text-align: justify;
 
-  &__item {
-    &__img {
-      padding-top: 160px;
-      background-size: cover;
-      margin-bottom: 0.5rem;
-      border-radius: 6px;
-    }
-
-    &__name {
-      font-size: 0.8rem;
-      text-align: center;
-    }
-  }
-}
-
-.watch-section {
-  margin-bottom: 30px;
-
-  .video-player {
-    width: 100%;
-    margin-bottom: 20px;
-
-    .video-wrapper {
-      position: relative;
-      width: 100%;
-      padding-top: 56.25%; // 16:9
-
-      iframe {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        border-radius: 8px;
+      @include mobile {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        text-align: left;
       }
     }
   }
 
-  .episode-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 20px;
-    justify-content: flex-start;
-
-    &.many {
-      justify-content: space-between;
-    }
-  }
-
-  .episode-btn {
-    flex: 1 0 calc(10% - 10px);
-    min-width: 60px;
-    max-width: 120px;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 6px;
-    background: #444;
-    color: #fff;
-    cursor: pointer;
-    text-align: center;
-    transition: background 0.3s;
-
-    &.active {
-      background: #ff3d71;
-    }
-
-    &:hover {
-      background: #ff3d71;
-    }
-
-    @include mobile {
-      flex: 1 0 calc(20% - 8px);
-      min-width: 40px;
-      max-width: 70px;
-      font-size: 12px;
-      padding: 6px;
-    }
-  }
-}
-
-/* Responsive tablet */
-@include tablet {
-  .movie-content {
+  @include tablet {
     flex-direction: column;
     align-items: center;
-    margin-top: -100px;
+    margin-top: -120px;
+    padding-inline: 2rem;
 
     &__poster {
       display: block;
-      width: 60%;
-      margin-bottom: 20px;
+      width: 50%;
+      max-width: 280px;
+      margin-bottom: 2rem;
     }
 
     &__info {
@@ -226,117 +253,574 @@
     }
   }
 
-  .watch-section .video-player .video-wrapper {
-    padding-top: 60%;
-  }
-}
-
-
-/* Responsive mobile */
-@include mobile {
-  .movie-content {
-    margin-top: -60px;
-    padding-inline: 1rem;
+  @include mobile {
+    margin-top: -80px;
+    padding-inline: 1.5rem;
+    margin-bottom: 3rem;
 
     &__poster {
-      width: 100%;
-      margin-bottom: 15px;
+      width: 70%;
+      max-width: 240px;
+      margin-bottom: 1.5rem;
       display: block;
     }
   }
+}
 
-  .watch-section .video-player .video-wrapper {
-    padding-top: 70%; // video cao hơn cho mobile
+/* ================= WATCH SECTION ================= */
+.watch-section {
+  margin-bottom: 3rem;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: 3rem;
+
+  @include tablet {
+    padding-inline: 2rem;
+  }
+
+  @include mobile {
+    padding-inline: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .video-player {
+    width: 100%;
+    margin-bottom: 2.5rem;
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%; // 16:9
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5),
+                  0 0 0 1px rgba(255, 255, 255, 0.1);
+      background: #000;
+      transition: all 0.4s ease;
+
+      &:hover {
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6),
+                    0 0 0 2px rgba(255, 61, 113, 0.3);
+      }
+
+      iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      @include tablet {
+        border-radius: 14px;
+        padding-top: 60%;
+      }
+
+      @include mobile {
+        border-radius: 12px;
+        padding-top: 65%;
+      }
+    }
+  }
+
+  // Episode Navigation Buttons
+  .episode-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(255, 61, 113, 0.1) 0%, rgba(229, 9, 20, 0.05) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 61, 113, 0.2);
+    backdrop-filter: blur(8px);
+
+    @include mobile {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+    }
+
+    .episode-nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.875rem 1.75rem;
+      background: linear-gradient(135deg, rgba(255, 61, 113, 0.2) 0%, rgba(229, 9, 20, 0.15) 100%);
+      border: 2px solid rgba(255, 61, 113, 0.3);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+      i {
+        font-size: 1.5rem;
+        transition: transform 0.3s ease;
+      }
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, rgba(255, 61, 113, 0.35) 0%, rgba(229, 9, 20, 0.25) 100%);
+        border-color: rgba(255, 61, 113, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 61, 113, 0.3);
+
+        &.prev i {
+          transform: translateX(-4px);
+        }
+
+        &.next i {
+          transform: translateX(4px);
+        }
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+
+        &:hover {
+          transform: none;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+      }
+
+      @include mobile {
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.95rem;
+
+        i {
+          font-size: 1.3rem;
+        }
+      }
+    }
+
+    .current-episode-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0 1rem;
+
+      @include mobile {
+        padding: 0;
+      }
+
+      .episode-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .episode-number {
+        font-size: 1.25rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #fff 0%, #ff3d71 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+
+        @include mobile {
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+
+  // Auto-play Notice
+  .autoplay-notice {
+    position: relative;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(255, 61, 113, 0.1) 100%);
+    border-radius: 16px;
+    border: 2px solid rgba(255, 61, 113, 0.3);
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.3);
+    animation: slideIn 0.4s ease-out;
+
+    @include mobile {
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .autoplay-content {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 1.5rem;
+
+      @include mobile {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.25rem;
+        text-align: center;
+      }
+
+      > i {
+        font-size: 3rem;
+        color: #ff3d71;
+        flex-shrink: 0;
+        animation: pulse 2s infinite;
+
+        @include mobile {
+          font-size: 2.5rem;
+        }
+      }
+
+      .autoplay-text {
+        flex: 1;
+
+        .autoplay-title {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #fff;
+          margin: 0 0 0.5rem 0;
+
+          @include mobile {
+            font-size: 1rem;
+          }
+        }
+
+        .autoplay-countdown {
+          font-size: 0.95rem;
+          color: rgba(255, 255, 255, 0.8);
+          margin: 0;
+
+          @include mobile {
+            font-size: 0.9rem;
+          }
+        }
+      }
+
+      .autoplay-cancel {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+
+        i {
+          font-size: 1.25rem;
+        }
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.15);
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: scale(1.05);
+        }
+
+        &:active {
+          transform: scale(0.98);
+        }
+
+        @include mobile {
+          width: 100%;
+          justify-content: center;
+          padding: 0.65rem 1.25rem;
+          font-size: 0.9rem;
+        }
+      }
+    }
+
+    .autoplay-progress {
+      height: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+
+      .autoplay-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #e50914 0%, #ff3d71 100%);
+        transition: width 1s linear;
+        box-shadow: 0 0 10px rgba(229, 9, 20, 0.6);
+      }
+    }
+  }
+
+  .episode-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 2rem;
+    justify-content: flex-start;
+
+    &.many {
+      justify-content: space-between;
+    }
+
+    @include mobile {
+      gap: 8px;
+      margin-top: 1.5rem;
+    }
+  }
+
+  .episode-btn {
+    flex: 1 0 calc(10% - 12px);
+    min-width: 70px;
+    max-width: 130px;
+    padding: 12px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 14px;
+    backdrop-filter: blur(8px);
+
+    &.active {
+      background: linear-gradient(135deg, #e50914 0%, #ff3d71 100%);
+      border-color: transparent;
+      box-shadow: 0 4px 16px rgba(229, 9, 20, 0.5);
+      transform: scale(1.05);
+    }
+
+    &:hover {
+      background: rgba(255, 61, 113, 0.2);
+      border-color: rgba(255, 61, 113, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 61, 113, 0.3);
+    }
+
+    @include mobile {
+      flex: 1 0 calc(20% - 8px);
+      min-width: 50px;
+      max-width: 80px;
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 8px;
+    }
   }
 }
+
+/* ================= CASTS SECTION ================= */
+.casts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 16px;
+  margin-bottom: 3rem;
+
+  @include mobile {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+  }
+
+  &__item {
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+    }
+
+    &__img {
+      padding-top: 160px;
+      background-size: cover;
+      background-position: center;
+      margin-bottom: 0.75rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+      }
+
+      @include mobile {
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    &__name {
+      font-size: 0.85rem;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+
+      @include mobile {
+        font-size: 0.75rem;
+      }
+    }
+  }
+}
+
+/* ================= ANIMATIONS ================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* ================= RESPONSIVE - LARGE SCREENS ================= */
+@media (min-width: 1920px) {
+  .banner {
+    height: 65vh;
+    min-height: 500px;
+  }
+
+  .movie-content {
+    max-width: 1600px;
+    margin-top: -250px;
+    padding-inline: 4rem;
+    margin-bottom: 5rem;
+
+    &__poster {
+      max-width: 360px;
+
+      &__img {
+        border-radius: 24px;
+      }
+    }
+
+    &__info {
+      padding-left: 4rem;
+
+      .title {
+        font-size: 4rem;
+        margin-bottom: 2rem;
+      }
+
+      .genres {
+        gap: 1rem;
+
+        &__item {
+          padding: 0.75rem 2rem;
+          font-size: 1rem;
+        }
+      }
+
+      .movie-tags {
+        gap: 14px;
+
+        .tag {
+          padding: 10px 18px;
+          font-size: 15px;
+        }
+      }
+
+      .overview {
+        font-size: 1.15rem;
+        line-height: 1.9;
+      }
+    }
+  }
+
+  .watch-section {
+    max-width: 1600px;
+    padding-inline: 4rem;
+    margin-bottom: 4rem;
+
+    .video-player {
+      margin-bottom: 3rem;
+
+      .video-wrapper {
+        border-radius: 20px;
+      }
+    }
+
+    .episode-btn {
+      min-width: 80px;
+      max-width: 150px;
+      padding: 14px 18px;
+      font-size: 15px;
+      border-radius: 12px;
+    }
+  }
+
+  .casts {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 20px;
+
+    &__item {
+      &__img {
+        border-radius: 14px;
+        margin-bottom: 1rem;
+      }
+
+      &__name {
+        font-size: 0.95rem;
+      }
+    }
+  }
+}
+
+/* ================= HOVER DISABLE FOR TOUCH DEVICES ================= */
 @media (hover: none) and (pointer: coarse) {
   button:hover {
     background: none;
     color: unset;
+    transform: none;
+  }
+
+  .movie-content__poster__img:hover,
+  .watch-section .video-player .video-wrapper:hover {
+    transform: none;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   }
 }
-.episode-scroll {
-  margin-top: 1rem;
 
-  // Scroll mặc định
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
-
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 3px;
-  }
-
-  .episode-list {
-    display: inline-flex;
-    gap: 10px;
-    padding-bottom: 6px;
-
-    .episode-btn {
-      flex: 0 0 auto;
-      min-width: 60px;
-      padding: 8px 12px;
-      border: 1px solid #444;
-      border-radius: 6px;
-      background: #222;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.25s ease;
-
-      &.active {
-        background: #e50914;
-        border-color: #e50914;
-      }
-
-      &:hover {
-        background: #ff3d71;
-      }
-    }
-  }
-
-  // ✅ Tablet & Desktop: giữ nguyên auto-fill grid
-  @media (min-width: 768px) {
-    max-height: 320px;
-    overflow-x: hidden;
-    overflow-y: auto;
-
-    .episode-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 10px;
-      white-space: normal;
-
-      .episode-btn {
-        width: 100%;
-        padding: 10px 0;
-        font-size: 14px;
-      }
-    }
-  }
-
-  // ✅ Mobile: auto-fill gọn gàng (4–6 nút 1 hàng)
-  @media (max-width: 767px) {
-    overflow-x: hidden; // bỏ scroll ngang, dùng grid
-    .episode-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
-      gap: 8px;
-      white-space: normal;
-
-      .episode-btn {
-        width: 100%;
-        padding: 6px 0;
-        font-size: 12px;
-      }
-    }
-  }
-}
-  
+// Episode scroll styles moved to src/components/episode-scroll/episode-scroll.scss

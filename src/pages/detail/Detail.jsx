@@ -247,6 +247,7 @@ import axiosClient from "../../api/axiosClient";
 import "./detail.scss";
 import { Helmet } from "react-helmet";
 import MovieList from "../../components/movie-list/MovieList";
+import EpisodeScroll from "../../components/episode-scroll/EpisodeScroll";
 
 const Detail = () => {
   const { category, id } = useParams();
@@ -258,8 +259,12 @@ const Detail = () => {
   const [backdrop_url, setBackdropUrl] = useState("");
   const [overview, setOverview] = useState("");
   const [currentEp, setCurrentEp] = useState(null);
+  const [autoPlayCountdown, setAutoPlayCountdown] = useState(null);
+  const [showAutoPlayNotice, setShowAutoPlayNotice] = useState(false);
 
   const iframeRef = useRef(null);
+  const autoPlayTimerRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
 
   // ✅ Lấy episode từ URL param nếu có
   const query = new URLSearchParams(location.search);
@@ -279,7 +284,7 @@ const Detail = () => {
         let defaultEp = data.episodes[0].server_data[0];
         if (epFromUrl) {
           const found = data.episodes[0].server_data.find(
-            (e) => e.name === epFromUrl
+            (e) => e.name === epFromUrl,
           );
           if (found) defaultEp = found;
         }
@@ -294,9 +299,11 @@ const Detail = () => {
     const fetchImage = async () => {
       if (!id || !item?.tmdb) return;
       try {
-        const apiKey = process.env.REACT_APP_TMDB_API_KEY;
+        // const apiKey = process.env.REACT_APP_TMDB_API_KEY;
+        const apiKey = "2724d844032ce6b2526dad06a0936a6e";
+
         const response = await axiosClient.get(
-          `https://api.themoviedb.org/3/${item.tmdb.type}/${item.tmdb.id}?api_key=${apiKey}&language=vi-VN`
+          `https://api.themoviedb.org/3/${item.tmdb.type}/${item.tmdb.id}?api_key=${apiKey}&language=vi-VN`,
         );
         if (response.poster_path) {
           setPosterUrl(apiConfig.w500Image(response.poster_path));
@@ -317,6 +324,9 @@ const Detail = () => {
   const handleSelectEpisode = (ep) => {
     setCurrentEp(ep);
 
+    // Clear auto-play timers
+    clearAutoPlayTimers();
+
     // cập nhật URL param
     const searchParams = new URLSearchParams(location.search);
     searchParams.set("ep", ep.name);
@@ -333,6 +343,122 @@ const Detail = () => {
       });
     }
   };
+
+  // ✅ Get current episode index
+  const getCurrentEpisodeIndex = () => {
+    if (!item?.episodes?.[0]?.server_data || !currentEp) return -1;
+    return item.episodes[0].server_data.findIndex(
+      (ep) => ep.name === currentEp.name
+    );
+  };
+
+  // ✅ Navigate to previous episode
+  const handlePrevEpisode = () => {
+    const currentIndex = getCurrentEpisodeIndex();
+    if (currentIndex > 0) {
+      const prevEp = item.episodes[0].server_data[currentIndex - 1];
+      handleSelectEpisode(prevEp);
+    }
+  };
+
+  // ✅ Navigate to next episode
+  const handleNextEpisode = () => {
+    const currentIndex = getCurrentEpisodeIndex();
+    if (
+      currentIndex !== -1 &&
+      currentIndex < item.episodes[0].server_data.length - 1
+    ) {
+      const nextEp = item.episodes[0].server_data[currentIndex + 1];
+      handleSelectEpisode(nextEp);
+    }
+  };
+
+  // ✅ Clear auto-play timers
+  const clearAutoPlayTimers = () => {
+    if (autoPlayTimerRef.current) {
+      clearTimeout(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setAutoPlayCountdown(null);
+    setShowAutoPlayNotice(false);
+  };
+
+  // ✅ Cancel auto-play
+  const handleCancelAutoPlay = () => {
+    clearAutoPlayTimers();
+  };
+
+  // ✅ Auto-play next episode after video ends (simulated with timer)
+  useEffect(() => {
+    // Clear previous timers
+    clearAutoPlayTimers();
+
+    // Only auto-play if there's a next episode
+    const currentIndex = getCurrentEpisodeIndex();
+    if (
+      currentIndex !== -1 &&
+      currentIndex < item?.episodes?.[0]?.server_data?.length - 1
+    ) {
+      // Show countdown after 5 seconds (simulating video end)
+      // In production, you'd detect actual video end event
+      autoPlayTimerRef.current = setTimeout(() => {
+        setShowAutoPlayNotice(true);
+        setAutoPlayCountdown(10);
+
+        // Countdown interval
+        countdownIntervalRef.current = setInterval(() => {
+          setAutoPlayCountdown((prev) => {
+            if (prev <= 1) {
+              clearAutoPlayTimers();
+              handleNextEpisode();
+              return null;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }, 5000); // Show notice after 5 seconds
+    }
+
+    return () => {
+      clearAutoPlayTimers();
+    };
+  }, [currentEp, item]);
+
+  // ✅ Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Ignore if user is typing in an input
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
+        return;
+      }
+
+      switch (e.key) {
+        case "ArrowLeft":
+          e.preventDefault();
+          handlePrevEpisode();
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          handleNextEpisode();
+          break;
+        case "Escape":
+          if (showAutoPlayNotice) {
+            e.preventDefault();
+            handleCancelAutoPlay();
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [currentEp, item, showAutoPlayNotice]);
 
   return (
     <>
@@ -432,25 +558,77 @@ const Detail = () => {
                 </div>
 
                 {item.episode_current !== "Trailer" && item.episodes && (
-                  <div className="episode-scroll">
-                    <div
-                      className={`episode-list ${
-                        item.episodes[0].server_data.length > 10 ? "many" : ""
-                      }`}
-                    >
-                      {item.episodes[0].server_data.map((ep, index) => (
-                        <button
-                          key={index}
-                          className={`episode-btn ${
-                            currentEp?.name === ep.name ? "active" : ""
-                          }`}
-                          onClick={() => handleSelectEpisode(ep)}
-                        >
-                          Tập {ep.name}
-                        </button>
-                      ))}
+                  <>
+                    {/* Next/Prev Episode Navigation */}
+                    <div className="episode-navigation">
+                      <button
+                        className="episode-nav-btn prev"
+                        onClick={handlePrevEpisode}
+                        disabled={getCurrentEpisodeIndex() <= 0}
+                      >
+                        <i className="bx bx-chevron-left"></i>
+                        <span>Tập trước</span>
+                      </button>
+
+                      <div className="current-episode-info">
+                        <span className="episode-label">Đang xem:</span>
+                        <span className="episode-number">
+                          Tập {currentEp?.name}
+                        </span>
+                      </div>
+
+                      <button
+                        className="episode-nav-btn next"
+                        onClick={handleNextEpisode}
+                        disabled={
+                          getCurrentEpisodeIndex() === -1 ||
+                          getCurrentEpisodeIndex() >=
+                            item.episodes[0].server_data.length - 1
+                        }
+                      >
+                        <span>Tập tiếp</span>
+                        <i className="bx bx-chevron-right"></i>
+                      </button>
                     </div>
-                  </div>
+
+                    {/* Auto-play Notice */}
+                    {showAutoPlayNotice && autoPlayCountdown !== null && (
+                      <div className="autoplay-notice">
+                        <div className="autoplay-content">
+                          <i className="bx bx-play-circle"></i>
+                          <div className="autoplay-text">
+                            <p className="autoplay-title">
+                              Tự động phát tập tiếp theo
+                            </p>
+                            <p className="autoplay-countdown">
+                              Tập {item.episodes[0].server_data[getCurrentEpisodeIndex() + 1]?.name} sẽ phát sau {autoPlayCountdown} giây
+                            </p>
+                          </div>
+                          <button
+                            className="autoplay-cancel"
+                            onClick={handleCancelAutoPlay}
+                          >
+                            <i className="bx bx-x"></i>
+                            Hủy
+                          </button>
+                        </div>
+                        <div className="autoplay-progress">
+                          <div
+                            className="autoplay-progress-bar"
+                            style={{
+                              width: `${((10 - autoPlayCountdown) / 10) * 100}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+
+                    <EpisodeScroll
+                      episodes={item.episodes[0].server_data}
+                      currentEpisode={currentEp}
+                      onSelectEpisode={handleSelectEpisode}
+                    />
+                  </>
                 )}
               </div>
             </div>
