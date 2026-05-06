@@ -264,6 +264,8 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
   backdrop-filter: blur(8px);
+  // position: relative;
+  // z-index: 10000;
 
   &:hover {
     background: rgba(255, 255, 255, 0.12);
@@ -305,6 +307,7 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     justify-content: center;
     font-size: 16px;
     box-shadow: 0 2px 8px rgba(255, 61, 113, 0.3);
+    flex-shrink: 0;
 
     &:hover {
       transform: scale(1.1) rotate(15deg);
@@ -332,6 +335,118 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
 
   @include mobile {
     display: none;
+  }
+}
+
+/* ================= SEARCH SUGGESTIONS DROPDOWN ================= */
+.search-suggestions {
+  position: fixed;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8),
+              0 0 0 1px rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 61, 113, 0.2);
+  backdrop-filter: blur(16px);
+  z-index: 10002;
+  max-height: 480px;
+  overflow-y: auto;
+  animation: slideDown 0.3s ease-out;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 61, 113, 0.5);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(255, 61, 113, 0.7);
+    }
+  }
+
+  &.mobile {
+    position: relative;
+    top: 8px;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .suggestion-loading {
+    padding: 1.5rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.95rem;
+  }
+
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+
+    &:hover {
+      background: rgba(255, 61, 113, 0.15);
+      border-color: rgba(255, 61, 113, 0.3);
+      transform: translateX(4px);
+    }
+
+    .suggestion-poster {
+      width: 50px;
+      height: 70px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: center/cover no-repeat rgba(255, 255, 255, 0.05);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .suggestion-info {
+      flex: 1;
+      min-width: 0;
+
+      .suggestion-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .suggestion-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+
+        span {
+          &.quality {
+            background: linear-gradient(135deg, rgba(255, 61, 113, 0.3) 0%, rgba(229, 9, 20, 0.2) 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: $main-color;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -451,6 +566,8 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     padding: 10px 16px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     transition: all 0.3s ease;
+    position: relative;
+    flex-wrap: wrap;
 
     &:focus-within {
       background: rgba(255, 255, 255, 0.15);
@@ -485,6 +602,7 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
       justify-content: center;
       transition: all 0.3s ease;
       box-shadow: 0 2px 8px rgba(255, 61, 113, 0.3);
+      flex-shrink: 0;
 
       &:active {
         transform: scale(0.9);

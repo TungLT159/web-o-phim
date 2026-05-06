@@ -239,8 +239,9 @@
 
 // export default Detail;
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useHistory, useLocation } from "react-router"; // ✅ thêm useHistory, useLocation
+import Hls from "hls.js";
 import tmdbApi from "../../api/tmdbApi";
 import apiConfig from "../../api/apiConfig";
 import axiosClient from "../../api/axiosClient";
@@ -261,10 +262,93 @@ const Detail = () => {
   const [currentEp, setCurrentEp] = useState(null);
   const [autoPlayCountdown, setAutoPlayCountdown] = useState(null);
   const [showAutoPlayNotice, setShowAutoPlayNotice] = useState(false);
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(() => {
+    // Lấy từ localStorage, mặc định là true
+    const saved = localStorage.getItem('autoPlayEnabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
 
-  const iframeRef = useRef(null);
+  const videoRef = useRef(null);
   const autoPlayTimerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
+  const hlsRef = useRef(null);
+
+  // ✅ Toggle auto-play setting
+  const handleToggleAutoPlay = useCallback(() => {
+    const newValue = !autoPlayEnabled;
+    setAutoPlayEnabled(newValue);
+    localStorage.setItem('autoPlayEnabled', JSON.stringify(newValue));
+    
+    // Nếu tắt auto-play, clear timers hiện tại
+    if (!newValue) {
+      clearAutoPlayTimers();
+    }
+  }, [autoPlayEnabled]);
+
+  // ✅ Clear auto-play timers
+  const clearAutoPlayTimers = useCallback(() => {
+    if (autoPlayTimerRef.current) {
+      clearTimeout(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setAutoPlayCountdown(null);
+    setShowAutoPlayNotice(false);
+  }, []);
+
+  // ✅ Get current episode index
+  const getCurrentEpisodeIndex = useCallback(() => {
+    if (!item?.episodes?.[0]?.server_data || !currentEp) return -1;
+    return item.episodes[0].server_data.findIndex(
+      (ep) => ep.name === currentEp.name
+    );
+  }, [item, currentEp]);
+
+  // ✅ Memoize genres list
+  const genresList = useMemo(() => {
+    if (!item?.category) return null;
+    return item.category.slice(0, 5).map((genre, i) => (
+      <span key={i} className="genres__item">
+        {genre.name}
+      </span>
+    ));
+  }, [item?.category]);
+
+  // ✅ Memoize movie tags
+  const movieTags = useMemo(() => {
+    if (!item) return null;
+    return (
+      <div className="movie-tags">
+        {item.quality && (
+          <span className="tag">Chất lượng: {item.quality}</span>
+        )}
+        {item.lang && (
+          <span className="tag">Ngôn ngữ: {item.lang}</span>
+        )}
+        {item.time && (
+          <span className="tag">Thời lượng: {item.time}</span>
+        )}
+        {item.episode_total && (
+          <span className="tag">Số tập: {item.episode_total}</span>
+        )}
+        {item.episode_current && (
+          <span className="tag">Tình trạng: {item.episode_current}</span>
+        )}
+        {item.year && <span className="tag">Năm: {item.year}</span>}
+      </div>
+    );
+  }, [item]);
+
+  // ✅ Memoize video source URL
+  const videoSource = useMemo(() => {
+    if (item?.episode_current === "Trailer") {
+      return item.trailer_url?.replace("watch?v=", "embed/");
+    }
+    return null;
+  }, [item]);
 
   // ✅ Lấy episode từ URL param nếu có
   const query = new URLSearchParams(location.search);
@@ -321,7 +405,7 @@ const Detail = () => {
   }, [id, item?.tmdb]);
 
   // ✅ Khi chọn tập → cập nhật state và URL
-  const handleSelectEpisode = (ep) => {
+  const handleSelectEpisode = useCallback((ep) => {
     setCurrentEp(ep);
 
     // Clear auto-play timers
@@ -336,33 +420,25 @@ const Detail = () => {
     });
 
     // Cuộn về video
-    if (iframeRef.current) {
-      iframeRef.current.scrollIntoView({
+    if (videoRef.current) {
+      videoRef.current.scrollIntoView({
         behavior: "smooth",
         block: "center",
       });
     }
-  };
-
-  // ✅ Get current episode index
-  const getCurrentEpisodeIndex = () => {
-    if (!item?.episodes?.[0]?.server_data || !currentEp) return -1;
-    return item.episodes[0].server_data.findIndex(
-      (ep) => ep.name === currentEp.name
-    );
-  };
+  }, [location.search, location.pathname, history, clearAutoPlayTimers]);
 
   // ✅ Navigate to previous episode
-  const handlePrevEpisode = () => {
+  const handlePrevEpisode = useCallback(() => {
     const currentIndex = getCurrentEpisodeIndex();
     if (currentIndex > 0) {
       const prevEp = item.episodes[0].server_data[currentIndex - 1];
       handleSelectEpisode(prevEp);
     }
-  };
+  }, [getCurrentEpisodeIndex, item, handleSelectEpisode]);
 
   // ✅ Navigate to next episode
-  const handleNextEpisode = () => {
+  const handleNextEpisode = useCallback(() => {
     const currentIndex = getCurrentEpisodeIndex();
     if (
       currentIndex !== -1 &&
@@ -371,62 +447,124 @@ const Detail = () => {
       const nextEp = item.episodes[0].server_data[currentIndex + 1];
       handleSelectEpisode(nextEp);
     }
-  };
-
-  // ✅ Clear auto-play timers
-  const clearAutoPlayTimers = () => {
-    if (autoPlayTimerRef.current) {
-      clearTimeout(autoPlayTimerRef.current);
-      autoPlayTimerRef.current = null;
-    }
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    setAutoPlayCountdown(null);
-    setShowAutoPlayNotice(false);
-  };
+  }, [getCurrentEpisodeIndex, item, handleSelectEpisode]);
 
   // ✅ Cancel auto-play
-  const handleCancelAutoPlay = () => {
+  const handleCancelAutoPlay = useCallback(() => {
     clearAutoPlayTimers();
-  };
+  }, [clearAutoPlayTimers]);
 
-  // ✅ Auto-play next episode after video ends (simulated with timer)
+  // ✅ Initialize HLS player for m3u8 videos
   useEffect(() => {
-    // Clear previous timers
-    clearAutoPlayTimers();
+    const video = videoRef.current;
+    if (!video || !currentEp?.link_m3u8) return;
 
-    // Only auto-play if there's a next episode
-    const currentIndex = getCurrentEpisodeIndex();
-    if (
-      currentIndex !== -1 &&
-      currentIndex < item?.episodes?.[0]?.server_data?.length - 1
-    ) {
-      // Show countdown after 5 seconds (simulating video end)
-      // In production, you'd detect actual video end event
-      autoPlayTimerRef.current = setTimeout(() => {
-        setShowAutoPlayNotice(true);
-        setAutoPlayCountdown(10);
+    // Cleanup previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
 
-        // Countdown interval
-        countdownIntervalRef.current = setInterval(() => {
-          setAutoPlayCountdown((prev) => {
-            if (prev <= 1) {
-              clearAutoPlayTimers();
-              handleNextEpisode();
-              return null;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      }, 5000); // Show notice after 5 seconds
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+
+      hls.loadSource(currentEp.link_m3u8);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch((err) => console.log("Auto-play prevented:", err));
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error("HLS Error:", data);
+          // Fallback to link_embed if available
+          if (currentEp.link_embed) {
+            video.src = currentEp.link_embed;
+          }
+        }
+      });
+
+      hlsRef.current = hls;
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Native HLS support (Safari)
+      video.src = currentEp.link_m3u8;
+      video.addEventListener("loadedmetadata", () => {
+        video.play().catch((err) => console.log("Auto-play prevented:", err));
+      });
     }
 
     return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [currentEp]);
+
+  // ✅ Auto-play next episode when video is near end
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let hasTriggeredAutoPlay = false;
+
+    const handleTimeUpdate = () => {
+      const currentTime = video.currentTime;
+      const duration = video.duration;
+
+      // Kiểm tra nếu video còn 30 giây cuối và chưa trigger
+      if (duration - currentTime <= 30 && !hasTriggeredAutoPlay && autoPlayEnabled) {
+        const currentIndex = getCurrentEpisodeIndex();
+        if (
+          currentIndex !== -1 &&
+          currentIndex < item?.episodes?.[0]?.server_data?.length - 1
+        ) {
+          hasTriggeredAutoPlay = true;
+          
+          // Hiện thông báo tự động phát
+          setShowAutoPlayNotice(true);
+          setAutoPlayCountdown(10);
+
+          // Countdown interval
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = setInterval(() => {
+            setAutoPlayCountdown((prev) => {
+              if (prev <= 1) {
+                clearAutoPlayTimers();
+                handleNextEpisode();
+                return null;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        }
+      }
+    };
+
+    const handleVideoEnded = () => {
+      const currentIndex = getCurrentEpisodeIndex();
+      if (
+        autoPlayEnabled &&
+        currentIndex !== -1 &&
+        currentIndex < item?.episodes?.[0]?.server_data?.length - 1
+      ) {
+        // Tự động phát tập tiếp theo ngay lập tức khi video kết thúc
+        handleNextEpisode();
+      }
+    };
+
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("ended", handleVideoEnded);
+
+    return () => {
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("ended", handleVideoEnded);
       clearAutoPlayTimers();
     };
-  }, [currentEp, item]);
+  }, [currentEp, item, autoPlayEnabled]);
 
   // ✅ Keyboard shortcuts
   useEffect(() => {
@@ -503,34 +641,10 @@ const Detail = () => {
                 {currentEp ? `- Tập ${currentEp.name}` : ""}
               </h1>
               <div className="genres">
-                {item.category &&
-                  item.category.slice(0, 5).map((genre, i) => (
-                    <span key={i} className="genres__item">
-                      {genre.name}
-                    </span>
-                  ))}
+                {genresList}
               </div>
               {/* ✅ Thêm các tag thông tin */}
-              <div className="movie-tags">
-                {item.quality && (
-                  <span className="tag">Chất lượng: {item.quality}</span>
-                )}
-                {item.lang && (
-                  <span className="tag">Ngôn ngữ: {item.lang}</span>
-                )}
-                {item.time && (
-                  <span className="tag">Thời lượng: {item.time}</span>
-                )}
-                {item.year && (
-                  <span className="tag">Số tập: {item.episode_total}</span>
-                )}
-                {item.year && (
-                  <span className="tag">
-                    Tình trạng: {item.episode_current}
-                  </span>
-                )}
-                {item.year && <span className="tag">Năm: {item.year}</span>}
-              </div>
+              {movieTags}
 
               {/* genres, tags, mô tả giữ nguyên */}
               <p className="overview">
@@ -542,23 +656,47 @@ const Detail = () => {
           <div className="container">
             <div className="section mb-3">
               <div className="watch-section">
-                <div className="video-player" ref={iframeRef}>
+                <div className="video-player">
                   <div className="video-wrapper">
-                    <iframe
-                      src={
-                        item.episode_current === "Trailer"
-                          ? item.trailer_url?.replace("watch?v=", "embed/")
-                          : currentEp?.link_embed
-                      }
-                      title="video-player"
-                      frameBorder="0"
-                      allowFullScreen
-                    ></iframe>
+                    {item.episode_current === "Trailer" ? (
+                      <iframe
+                        src={videoSource}
+                        title="video-player"
+                        frameBorder="0"
+                        allowFullScreen
+                      ></iframe>
+                    ) : (
+                      <video
+                        ref={videoRef}
+                        controls
+                        autoPlay
+                        controlsList="nodownload"
+                        style={{ width: "100%", height: "100%" }}
+                      >
+                        Trình duyệt của bạn không hỗ trợ video HTML5.
+                      </video>
+                    )}
                   </div>
                 </div>
 
                 {item.episode_current !== "Trailer" && item.episodes && (
                   <>
+                    {/* Auto-play Toggle */}
+                    <div className="autoplay-toggle-container">
+                      <label className="autoplay-toggle">
+                        <input
+                          type="checkbox"
+                          checked={autoPlayEnabled}
+                          onChange={handleToggleAutoPlay}
+                        />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-label">
+                          <i className="bx bx-play-circle"></i>
+                          Tự động phát tập tiếp theo
+                        </span>
+                      </label>
+                    </div>
+
                     {/* Next/Prev Episode Navigation */}
                     <div className="episode-navigation">
                       <button
@@ -601,7 +739,13 @@ const Detail = () => {
                               Tự động phát tập tiếp theo
                             </p>
                             <p className="autoplay-countdown">
-                              Tập {item.episodes[0].server_data[getCurrentEpisodeIndex() + 1]?.name} sẽ phát sau {autoPlayCountdown} giây
+                              Tập{" "}
+                              {
+                                item.episodes[0].server_data[
+                                  getCurrentEpisodeIndex() + 1
+                                ]?.name
+                              }{" "}
+                              sẽ phát sau {autoPlayCountdown} giây
                             </p>
                           </div>
                           <button

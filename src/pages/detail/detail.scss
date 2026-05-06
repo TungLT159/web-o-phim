@@ -80,26 +80,27 @@
       border-radius: 20px;
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6),
                   0 0 0 1px rgba(255, 255, 255, 0.1);
-      transition: all 0.4s ease;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       position: relative;
       overflow: hidden;
+      will-change: transform;
 
-      // Shimmer effect
-      &::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          110deg,
-          transparent 0%,
-          transparent 40%,
-          rgba(255, 255, 255, 0.15) 50%,
-          transparent 60%,
-          transparent 100%
-        );
-        transform: translateX(-100%);
-        animation: shimmer 3s infinite;
-      }
+      // Shimmer effect - disabled by default for performance
+      // &::after {
+      //   content: "";
+      //   position: absolute;
+      //   inset: 0;
+      //   background: linear-gradient(
+      //     110deg,
+      //     transparent 0%,
+      //     transparent 40%,
+      //     rgba(255, 255, 255, 0.15) 50%,
+      //     transparent 60%,
+      //     transparent 100%
+      //   );
+      //   transform: translateX(-100%);
+      //   animation: shimmer 3s infinite;
+      // }
 
       &:hover {
         transform: translateY(-8px) scale(1.02);
@@ -162,14 +163,14 @@
         font-weight: 600;
         background: rgba(255, 255, 255, 0.05);
         color: #fff;
-        transition: all 0.3s ease;
+        transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
         backdrop-filter: blur(8px);
+        will-change: transform;
 
         &:hover {
           border-color: #ff3d71;
           background: rgba(255, 61, 113, 0.15);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(255, 61, 113, 0.3);
         }
 
         @include mobile {
@@ -199,16 +200,16 @@
         font-weight: 600;
         border: 1px solid rgba(255, 61, 113, 0.3);
         backdrop-filter: blur(8px);
-        transition: all 0.3s ease;
+        transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
         display: flex;
         align-items: center;
         gap: 6px;
+        will-change: transform;
 
         &:hover {
           background: linear-gradient(135deg, rgba(255, 61, 113, 0.25) 0%, rgba(229, 9, 20, 0.2) 100%);
           border-color: rgba(255, 61, 113, 0.5);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(255, 61, 113, 0.3);
         }
 
         @include mobile {
@@ -296,19 +297,22 @@
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5),
                   0 0 0 1px rgba(255, 255, 255, 0.1);
       background: #000;
-      transition: all 0.4s ease;
+      transition: box-shadow 0.3s ease;
+      transform: translateZ(0); // Force GPU acceleration
 
       &:hover {
         box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6),
                     0 0 0 2px rgba(255, 61, 113, 0.3);
       }
 
-      iframe {
+      iframe,
+      video {
         position: absolute;
         inset: 0;
         width: 100%;
         height: 100%;
         border: none;
+        object-fit: contain;
       }
 
       @include tablet {
@@ -319,6 +323,119 @@
       @include mobile {
         border-radius: 12px;
         padding-top: 65%;
+      }
+    }
+  }
+
+  // Auto-play Toggle
+  .autoplay-toggle-container {
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+
+    @include mobile {
+      margin-bottom: 1rem;
+    }
+  }
+
+  .autoplay-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(255, 61, 113, 0.1) 0%, rgba(229, 9, 20, 0.05) 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 61, 113, 0.2);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    user-select: none;
+    will-change: transform;
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(255, 61, 113, 0.15) 0%, rgba(229, 9, 20, 0.08) 100%);
+      border-color: rgba(255, 61, 113, 0.3);
+      transform: translateY(-2px);
+    }
+
+    @include mobile {
+      padding: 0.875rem 1.25rem;
+      gap: 0.75rem;
+    }
+
+    input[type="checkbox"] {
+      display: none;
+    }
+
+    .toggle-slider {
+      position: relative;
+      width: 50px;
+      height: 26px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 13px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      transition: background 0.2s ease, border-color 0.2s ease;
+      flex-shrink: 0;
+
+      &::before {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.6);
+        top: 2px;
+        left: 2px;
+        transition: transform 0.2s ease, background 0.2s ease;
+        will-change: transform;
+      }
+
+      @include mobile {
+        width: 44px;
+        height: 24px;
+
+        &::before {
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+
+    input[type="checkbox"]:checked + .toggle-slider {
+      background: linear-gradient(135deg, #e50914 0%, #ff3d71 100%);
+      border-color: transparent;
+
+      &::before {
+        transform: translateX(24px);
+        background: #fff;
+      }
+
+      @include mobile {
+        &::before {
+          transform: translateX(20px);
+        }
+      }
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+
+      i {
+        font-size: 1.5rem;
+        color: #ff3d71;
+      }
+
+      @include mobile {
+        font-size: 0.9rem;
+
+        i {
+          font-size: 1.3rem;
+        }
       }
     }
   }
@@ -355,20 +472,19 @@
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
       backdrop-filter: blur(8px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      will-change: transform;
 
       i {
         font-size: 1.5rem;
-        transition: transform 0.3s ease;
+        transition: transform 0.2s ease;
       }
 
       &:hover:not(:disabled) {
         background: linear-gradient(135deg, rgba(255, 61, 113, 0.35) 0%, rgba(229, 9, 20, 0.25) 100%);
         border-color: rgba(255, 61, 113, 0.5);
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(255, 61, 113, 0.3);
 
         &.prev i {
           transform: translateX(-4px);
@@ -391,7 +507,6 @@
 
         &:hover {
           transform: none;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
       }
 
@@ -450,8 +565,8 @@
     border: 2px solid rgba(255, 61, 113, 0.3);
     overflow: hidden;
     backdrop-filter: blur(12px);
-    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.3);
-    animation: slideIn 0.4s ease-out;
+    animation: slideIn 0.3s ease-out;
+    transform: translateZ(0); // Force GPU acceleration
 
     @include mobile {
       border-radius: 12px;
@@ -475,7 +590,7 @@
         font-size: 3rem;
         color: #ff3d71;
         flex-shrink: 0;
-        animation: pulse 2s infinite;
+        animation: pulse 2s ease-in-out infinite;
 
         @include mobile {
           font-size: 2.5rem;
@@ -519,8 +634,9 @@
         font-size: 0.95rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
         flex-shrink: 0;
+        will-change: transform;
 
         i {
           font-size: 1.25rem;
@@ -588,15 +704,15 @@
     color: #fff;
     cursor: pointer;
     text-align: center;
-    transition: all 0.3s ease;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
     font-weight: 600;
     font-size: 14px;
     backdrop-filter: blur(8px);
+    will-change: transform;
 
     &.active {
       background: linear-gradient(135deg, #e50914 0%, #ff3d71 100%);
       border-color: transparent;
-      box-shadow: 0 4px 16px rgba(229, 9, 20, 0.5);
       transform: scale(1.05);
     }
 
@@ -604,7 +720,6 @@
       background: rgba(255, 61, 113, 0.2);
       border-color: rgba(255, 61, 113, 0.5);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(255, 61, 113, 0.3);
     }
 
     @include mobile {
@@ -712,6 +827,18 @@
   50% {
     transform: scale(1.1);
     opacity: 0.8;
+  }
+}
+
+/* ================= PERFORMANCE OPTIMIZATIONS ================= */
+// Reduce motion for users who prefer it
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

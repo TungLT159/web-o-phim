@@ -84,10 +84,13 @@
 // };
 
 // export default Header;
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useHistory } from "react-router-dom";
 import "./header.scss";
 import logo from "../../assets/tmovie.png";
+import tmdbApi from "../../api/tmdbApi";
+import apiConfig from "../../api/apiConfig";
+import axiosClient from "../../api/axiosClient";
 
 const Header = () => {
   const { pathname } = useLocation();
@@ -97,6 +100,16 @@ const Header = () => {
   const [keyword, setKeyword] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [suggestionPosition, setSuggestionPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
+  const searchRef = useRef(null);
+  const debounceTimerRef = useRef(null);
   const headerNav = [
     {
       display: "Danh sách",
@@ -173,14 +186,159 @@ const Header = () => {
     return () => window.removeEventListener("scroll", shrinkHeader);
   }, []);
 
+  // ✅ Update suggestion position on scroll and resize
+  useEffect(() => {
+    const updatePosition = () => {
+      if (searchRef.current && showSuggestions) {
+        const rect = searchRef.current.getBoundingClientRect();
+        setSuggestionPosition({
+          top: rect.bottom,
+          left: rect.left,
+          width: rect.width,
+        });
+      }
+    };
+
+    if (showSuggestions) {
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+    }
+
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [showSuggestions]);
+
+  // ✅ Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        // Check if click is on suggestion dropdown
+        const suggestionDropdown = document.querySelector(
+          ".search-suggestions",
+        );
+        if (suggestionDropdown && suggestionDropdown.contains(event.target)) {
+          return; // Don't close if clicking inside suggestions
+        }
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ✅ Fetch search suggestions with debounce
+  const fetchSuggestions = useCallback(async (searchKeyword) => {
+    if (searchKeyword.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await tmdbApi.search("movie", {
+        keyword: searchKeyword,
+        limit: 8,
+      });
+      const items = response.data?.items || [];
+
+      // Fetch TMDB images for each movie
+      const itemsWithImages = await Promise.all(
+        items.map(async (movie) => {
+          try {
+            if (movie.tmdb?.id && movie.tmdb?.type) {
+              const apiKey = "2724d844032ce6b2526dad06a0936a6e";
+              const tmdbResponse = await axiosClient.get(
+                `https://api.themoviedb.org/3/${movie.tmdb.type}/${movie.tmdb.id}?api_key=${apiKey}&language=vi-VN`,
+              );
+              return {
+                ...movie,
+                tmdb_poster: tmdbResponse.poster_path
+                  ? apiConfig.w500Image(tmdbResponse.poster_path)
+                  : null,
+              };
+            }
+            return movie;
+          } catch (error) {
+            console.error("Error fetching TMDB image:", error);
+            return movie;
+          }
+        }),
+      );
+
+      setSuggestions(itemsWithImages);
+      setShowSuggestions(itemsWithImages.length > 0);
+
+      // Calculate position for dropdown
+      if (searchRef.current && itemsWithImages.length > 0) {
+        const rect = searchRef.current.getBoundingClientRect();
+        setSuggestionPosition({
+          top: rect.bottom,
+          left: rect.left,
+          width: rect.width,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      setSuggestions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // ✅ Handle search input change with debounce
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setKeyword(value);
+
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new timer
+    debounceTimerRef.current = setTimeout(() => {
+      fetchSuggestions(value);
+    }, 300);
+  };
+
   const goToSearch = (e) => {
     e.preventDefault();
     if (keyword.trim().length > 0) {
       history.push(`/movie/search/${keyword}`);
       setKeyword("");
       setIsMobileMenuOpen(false);
+      setShowSuggestions(false);
+      setSuggestions([]);
     }
   };
+
+  // ✅ Handle suggestion click
+  const handleSuggestionClick = useCallback(
+    (movie, e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      console.log("Movie clicked:", movie); // Debug log
+
+      // Navigate immediately - use slug field from API
+      const movieId = movie.slug || movie._id;
+      console.log("Navigating to:", `/movie/${movieId}`);
+      history.push(`/movie/${movieId}`);
+
+      // Then cleanup
+      setKeyword("");
+      setShowSuggestions(false);
+      setSuggestions([]);
+      setIsMobileMenuOpen(false);
+    },
+    [history],
+  );
 
   const toggleSubmenu = (index) => {
     setOpenSubmenu(openSubmenu === index ? null : index);
@@ -222,17 +380,69 @@ const Header = () => {
           </ul>
 
           {/* Search */}
-          <form className="header__search" onSubmit={goToSearch}>
+          <form
+            className="header__search"
+            onSubmit={goToSearch}
+            ref={searchRef}
+          >
             <input
               type="text"
               placeholder="Nhập tên phim..."
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={handleSearchChange}
+              onFocus={() =>
+                keyword.trim().length >= 2 &&
+                suggestions.length > 0 &&
+                setShowSuggestions(true)
+              }
             />
             <button type="submit">🔍</button>
           </form>
         </div>
       </div>
+
+      {/* Search Suggestions Dropdown - Outside header, position fixed */}
+      {showSuggestions && (
+        <div
+          className="search-suggestions"
+          style={{
+            top: `${suggestionPosition.top}px`,
+            left: `${suggestionPosition.left}px`,
+            width: `${suggestionPosition.width}px`,
+          }}
+        >
+          {isSearching ? (
+            <div className="suggestion-loading">Đang tìm kiếm...</div>
+          ) : (
+            <>
+              {suggestions.map((movie) => (
+                <div
+                  key={movie._id}
+                  className="suggestion-item"
+                  onClick={(e) => handleSuggestionClick(movie, e)}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <div
+                    className="suggestion-poster"
+                    style={{
+                      backgroundImage: `url(${movie.tmdb_poster || movie.thumb_url || movie.poster_url || "/poster-mau.png"})`,
+                    }}
+                  ></div>
+                  <div className="suggestion-info">
+                    <div className="suggestion-title">{movie.name}</div>
+                    <div className="suggestion-meta">
+                      {movie.year && <span>{movie.year}</span>}
+                      {movie.quality && (
+                        <span className="quality">{movie.quality}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Mobile Menu */}
       <div className={`mobile-menu ${isMobileMenuOpen ? "active" : ""}`}>
@@ -246,9 +456,48 @@ const Header = () => {
             type="text"
             placeholder="Nhập tên phim..."
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={handleSearchChange}
           />
           <button type="submit">🔍</button>
+
+          {/* Mobile Search Suggestions */}
+          {showSuggestions && (
+            <div className="search-suggestions mobile">
+              {isSearching ? (
+                <div className="suggestion-loading">Đang tìm kiếm...</div>
+              ) : (
+                <>
+                  {suggestions.map((movie) => (
+                    <div
+                      key={movie._id}
+                      className="suggestion-item"
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        handleSuggestionClick(movie, e);
+                      }}
+                      onClick={(e) => handleSuggestionClick(movie, e)}
+                    >
+                      <div
+                        className="suggestion-poster"
+                        style={{
+                          backgroundImage: `url(${movie.tmdb_poster || movie.thumb_url || movie.poster_url || "/poster-mau.png"})`,
+                        }}
+                      ></div>
+                      <div className="suggestion-info">
+                        <div className="suggestion-title">{movie.name}</div>
+                        <div className="suggestion-meta">
+                          {movie.year && <span>{movie.year}</span>}
+                          {movie.quality && (
+                            <span className="quality">{movie.quality}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
         </form>
         <ul>
           {headerNav.map((e, i) => (
