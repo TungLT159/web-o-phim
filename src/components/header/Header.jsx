@@ -89,8 +89,7 @@ import { Link, useLocation, useHistory } from "react-router-dom";
 import "./header.scss";
 import logo from "../../assets/tmovie.png";
 import tmdbApi from "../../api/tmdbApi";
-import apiConfig from "../../api/apiConfig";
-import axiosClient from "../../api/axiosClient";
+import { fetchTMDBImagesForItems } from "../../utils/tmdbImageFetcher";
 
 const Header = () => {
   const { pathname } = useLocation();
@@ -245,29 +244,8 @@ const Header = () => {
       });
       const items = response.data?.items || [];
 
-      // Fetch TMDB images for each movie
-      const itemsWithImages = await Promise.all(
-        items.map(async (movie) => {
-          try {
-            if (movie.tmdb?.id && movie.tmdb?.type) {
-              const apiKey = "2724d844032ce6b2526dad06a0936a6e";
-              const tmdbResponse = await axiosClient.get(
-                `https://api.themoviedb.org/3/${movie.tmdb.type}/${movie.tmdb.id}?api_key=${apiKey}&language=vi-VN`,
-              );
-              return {
-                ...movie,
-                tmdb_poster: tmdbResponse.poster_path
-                  ? apiConfig.w500Image(tmdbResponse.poster_path)
-                  : null,
-              };
-            }
-            return movie;
-          } catch (error) {
-            console.error("Error fetching TMDB image:", error);
-            return movie;
-          }
-        }),
-      );
+      // Fetch TMDB images for all items using the helper function
+      const itemsWithImages = await fetchTMDBImagesForItems(items);
 
       setSuggestions(itemsWithImages);
       setShowSuggestions(itemsWithImages.length > 0);

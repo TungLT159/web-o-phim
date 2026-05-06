@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router";
 
 import axiosClient from "../../api/axiosClient";
-import apiConfig from "../../api/apiConfig";
+import { getTMDBProfileImage } from "../../utils/tmdbImageFetcher";
 import { SwiperSlide, Swiper } from "swiper/react";
 
 const CastList = (props) => {
@@ -16,7 +16,6 @@ const CastList = (props) => {
       const response = await axiosClient.get(
         `https://ophim1.com/v1/api/phim/${props.id}/peoples`
       );
-      // console.log(response);
       setProfilePath(response.data.profile_sizes.w45);
       setCasts(response.data.peoples.slice(0, 8));
     };
@@ -27,7 +26,7 @@ const CastList = (props) => {
       <Swiper
         grabCursor={true}
         spaceBetween={20}
-        slidesPerView={6} // số cast hiển thị cùng lúc
+        slidesPerView={6}
         navigation={{
           nextEl: ".casts-button-next",
           prevEl: ".casts-button-prev",
@@ -44,10 +43,8 @@ const CastList = (props) => {
                   margin: "0 auto 10px",
                   borderRadius: "50%",
                   overflow: "hidden",
-                  backgroundImage: `url(${apiConfig.w500Image(
-                    item.profile_path
-                  )})`,
-                  backgroundSize: "cover", // crop canh giữa
+                  backgroundImage: `url(${getTMDBProfileImage(item.profile_path)})`,
+                  backgroundSize: "cover",
                   backgroundPosition: "center",
                 }}
               ></div>

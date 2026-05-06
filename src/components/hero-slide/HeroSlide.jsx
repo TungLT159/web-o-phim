@@ -8,7 +8,7 @@ import Modal, { ModalContent } from "../modal/Modal";
 
 import tmdbApi, { movieType } from "../../api/tmdbApi";
 import axiosClient from "../../api/axiosClient";
-import apiConfig from "../../api/apiConfig";
+import { fetchTMDBImages } from "../../utils/tmdbImageFetcher";
 import "./hero-slide.scss";
 import { useHistory } from "react-router";
 
@@ -64,14 +64,11 @@ const HeroSlideItem = (props) => {
   let history = useHistory();
   const item = props.item;
   const [movie, setMovie] = useState(null);
-  // const [poster_url, setPosterUrl] = useState("");
   const [poster_url, setPosterUrl] = useState("/poster-mau.png");
   const [backdrop_url, setBackdropUrl] = useState("");
   const [overview, setOverview] = useState("");
 
-  // const background = apiConfig.originalImage(item.thumb_url);
-
-  // ✅ gọi API để lấy chi tiết phim ngay khi component mount
+  // Fetch movie detail từ Ophim API
   useEffect(() => {
     const fetchMovieDetail = async () => {
       if (!item.slug) return;
@@ -80,64 +77,24 @@ const HeroSlideItem = (props) => {
           `https://ophim1.com/v1/api/phim/${item.slug}`,
         );
         setMovie(response.data);
-        // console.log(response);
       } catch (error) {
-        setPosterUrl("/poster-mau.png");
-        // setPosterUrl("/noposter.jpg");
         console.error("Lỗi khi load movie detail:", error);
       }
     };
     fetchMovieDetail();
   }, [item.slug]);
 
+  // Fetch TMDB images
   useEffect(() => {
-    const fetchImage = async () => {
-      if (!item) return;
-      try {
-        const apiKey = "2724d844032ce6b2526dad06a0936a6e";
-        // const apiKey = process.env.REACT_APP_TMDB_API_KEY;
-        const response = await axiosClient.get(
-          `https://api.themoviedb.org/3/${
-            item.tmdb.type ? item.tmdb.type : "movie"
-          }/${item.tmdb.id}?api_key=${apiKey}&language=vi-VN`,
-        );
-        if (response.poster_path == null) {
-          setPosterUrl("/poster-mau.png");
-        } else {
-          setPosterUrl(apiConfig.w500Image(response.poster_path));
-        }
-        // setPosterUrl(apiConfig.w500Image(response.poster_path));
-        setBackdropUrl(apiConfig.w500Image(response.backdrop_path));
-        setOverview(response.overview);
-      } catch (error) {
-        console.error("Lỗi khi load movie detail:", error);
-      }
+    const loadImages = async () => {
+      if (!item?.tmdb) return;
+      const { posterUrl, backdropUrl, overview: tmdbOverview } = await fetchTMDBImages(item.tmdb);
+      setPosterUrl(posterUrl);
+      setBackdropUrl(backdropUrl);
+      setOverview(tmdbOverview);
     };
-    fetchImage();
+    loadImages();
   }, [item]);
-  // useEffect(() => {
-  //   const fetchImage = async () => {
-  //     if (!item.slug) return;
-  //     try {
-  //       const response = await axiosClient.get(
-  //         `https://ophim1.com/v1/api/phim/${item.slug}/images`
-  //       );
-  //       setPosterUrl(
-  //         `${response.data.image_sizes.poster.original}${
-  //           response.data.images[response.data.images.length - 2].file_path
-  //         }`
-  //       );
-  //       // console.log(response);
-  //       // console.log(
-  //       //   response.data.image_sizes.poster.original +
-  //       //     response.data.images[response.data.images.length - 2].file_path
-  //       // );
-  //     } catch (error) {
-  //       console.error("Lỗi khi load movie detail:", error);
-  //     }
-  //   };
-  //   fetchImage();
-  // }, [item.slug]);
 
   const setModalActive = async () => {
     const modal = document.querySelector(`#modal_${item.id}`);
@@ -150,7 +107,7 @@ const HeroSlideItem = (props) => {
         `https://ophim1.com/v1/api/phim/${item.slug}`,
       );
       const movieData = response.data;
-      setMovie(movieData); // cập nhật lại state
+      setMovie(movieData);
       let trailerUrl = movieData.item.trailer_url;
       if (trailerUrl && trailerUrl.includes("watch?v=")) {
         trailerUrl = trailerUrl.replace("watch?v=", "embed/");
@@ -214,7 +171,6 @@ const HeroSlideItem = (props) => {
         </div>
         <div className="hero-slide__item__content__poster">
           <img src={poster_url} alt="" />
-          {/* <img src={apiConfig.originalImage(item.thumb_url)} alt="" /> */}
         </div>
       </div>
     </div>

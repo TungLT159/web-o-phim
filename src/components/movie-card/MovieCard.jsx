@@ -2,75 +2,37 @@ import "./movie-card.scss";
 
 import Button from "../button/Button";
 import React, { useState, useEffect } from "react";
-
-// import { category } from "../../api/tmdbApi";
-import apiConfig from "../../api/apiConfig";
-import axiosClient from "../../api/axiosClient";
 import { Link } from "react-router-dom";
+import { fetchTMDBImages } from "../../utils/tmdbImageFetcher";
 
 const MovieCard = (props) => {
   const item = props.item;
 
   const link = "/movie/" + item.slug;
-  // const bg = apiConfig.w500Image(item.poster_url);
   const [poster_url, setPosterUrl] = useState("/poster-mau.png");
-  // const [poster_url, setPosterUrl] = useState("");
-  useEffect(() => {
-    const fetchImage = async () => {
-      if (!item) return;
-      try {
-        // const apiKey = process.env.REACT_APP_TMDB_API_KEY;
-        const apiKey = "2724d844032ce6b2526dad06a0936a6e";
+  const [rating, setRating] = useState(null);
+  const [voteCount, setVoteCount] = useState(null);
 
-        const response = await axiosClient.get(
-          `https://api.themoviedb.org/3/${
-            item.tmdb.type ? item.tmdb.type : "movie"
-          }/${item.tmdb.id}?api_key=${apiKey}&language=vi-VN`,
-        );
-        // console.log(response);
-        if (response.poster_path == null) {
-          setPosterUrl("/poster-mau.png");
-        } else {
-          setPosterUrl(apiConfig.w500Image(response.poster_path));
+  useEffect(() => {
+    const loadMovieData = async () => {
+      if (!item?.tmdb) return;
+      
+      // Fetch full TMDB data to get rating
+      try {
+        const { posterUrl } = await fetchTMDBImages(item.tmdb);
+        setPosterUrl(posterUrl);
+        
+        // Get rating from tmdb object if available
+        if (item.tmdb.vote_average) {
+          setRating(item.tmdb.vote_average);
+          setVoteCount(item.tmdb.vote_count);
         }
-        // console.log(response);
-        // console.log(
-        //   response.data.image_sizes.poster.original +
-        //     response.data.images[response.data.images.length - 2].file_path
-        // );
       } catch (error) {
-        // setPosterUrl("/noposter.jpg");
-        setPosterUrl("/poster-mau.png");
-        console.error("Lỗi khi load movie detail:", error);
+        console.error("Error loading movie data:", error);
       }
     };
-    fetchImage();
+    loadMovieData();
   }, [item]);
-  // useEffect(() => {
-  //   const fetchImage = async () => {
-  //     if (!item.slug) return;
-  //     try {
-  //       const response = await axiosClient.get(
-  //         `https://ophim1.com/v1/api/phim/${item.slug}/images`
-  //       );
-  //       setPosterUrl(
-  //         `${response.data.image_sizes.poster.original}${
-  //           response.data.images[response.data.images.length - 2].file_path
-  //         }`
-  //       );
-  //       // console.log(response);
-  //       // console.log(
-  //       //   response.data.image_sizes.poster.original +
-  //       //     response.data.images[response.data.images.length - 2].file_path
-  //       // );
-  //     } catch (error) {
-  //       // setPosterUrl("/noposter.jpg");
-  //       setPosterUrl("/poster-mau.png");
-  //       console.error("Lỗi khi load movie detail:", error);
-  //     }
-  //   };
-  //   fetchImage();
-  // }, [item.slug]);
 
   return (
     <Link to={link}>
@@ -78,11 +40,47 @@ const MovieCard = (props) => {
         className="movie-card"
         style={{ backgroundImage: `url(${poster_url})` }}
       >
-        <Button>
-          <i className="bx bx-play"></i>
-        </Button>
+        {/* Quality Badge */}
+        {item.quality && (
+          <div className="movie-card__badge quality-badge">
+            {item.quality}
+          </div>
+        )}
+        
+        {/* Rating Badge */}
+        {rating && (
+          <div className="movie-card__badge rating-badge">
+            <i className="bx bxs-star"></i>
+            <span>{rating.toFixed(1)}</span>
+          </div>
+        )}
+        
+        {/* Overlay with info */}
+        <div className="movie-card__overlay">
+          <Button>
+            <i className="bx bx-play"></i>
+          </Button>
+          
+          <div className="movie-card__info">
+            {item.year && (
+              <span className="movie-card__year">
+                <i className="bx bx-calendar"></i> {item.year}
+              </span>
+            )}
+            {voteCount && (
+              <span className="movie-card__votes">
+                <i className="bx bx-user"></i> {voteCount.toLocaleString()}
+              </span>
+            )}
+            {item.view && (
+              <span className="movie-card__views">
+                <i className="bx bx-show"></i> {item.view.toLocaleString()}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
-      <h3>{item.title || item.name}</h3>
+      <h3 className="movie-card__title">{item.title || item.name}</h3>
     </Link>
   );
 };
