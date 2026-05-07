@@ -239,17 +239,23 @@
 
 // export default Detail;
 
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useParams, useHistory, useLocation } from "react-router";
 import Hls from "hls.js";
 import tmdbApi from "../../api/tmdbApi";
 import axiosClient from "../../api/axiosClient";
 import { fetchTMDBImages } from "../../utils/tmdbImageFetcher";
-import { 
-  saveWatchProgress, 
-  getWatchProgress, 
+import {
+  saveWatchProgress,
+  getWatchProgress,
   shouldShowContinueWatching,
-  formatTime 
+  formatTime,
 } from "../../utils/watchHistoryManager";
 import "./detail.scss";
 import { Helmet } from "react-helmet";
@@ -270,10 +276,10 @@ const Detail = () => {
   const [showAutoPlayNotice, setShowAutoPlayNotice] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(() => {
     // Lấy từ localStorage, mặc định là true
-    const saved = localStorage.getItem('autoPlayEnabled');
+    const saved = localStorage.getItem("autoPlayEnabled");
     return saved !== null ? JSON.parse(saved) : true;
   });
-  
+
   // Watch history states
   const [showContinueWatching, setShowContinueWatching] = useState(false);
   const [savedProgress, setSavedProgress] = useState(null);
@@ -288,8 +294,8 @@ const Detail = () => {
   const handleToggleAutoPlay = useCallback(() => {
     const newValue = !autoPlayEnabled;
     setAutoPlayEnabled(newValue);
-    localStorage.setItem('autoPlayEnabled', JSON.stringify(newValue));
-    
+    localStorage.setItem("autoPlayEnabled", JSON.stringify(newValue));
+
     // Nếu tắt auto-play, clear timers hiện tại
     if (!newValue) {
       clearAutoPlayTimers();
@@ -314,7 +320,7 @@ const Detail = () => {
   const getCurrentEpisodeIndex = useCallback(() => {
     if (!item?.episodes?.[0]?.server_data || !currentEp) return -1;
     return item.episodes[0].server_data.findIndex(
-      (ep) => ep.name === currentEp.name
+      (ep) => ep.name === currentEp.name,
     );
   }, [item, currentEp]);
 
@@ -336,12 +342,8 @@ const Detail = () => {
         {item.quality && (
           <span className="tag">Chất lượng: {item.quality}</span>
         )}
-        {item.lang && (
-          <span className="tag">Ngôn ngữ: {item.lang}</span>
-        )}
-        {item.time && (
-          <span className="tag">Thời lượng: {item.time}</span>
-        )}
+        {item.lang && <span className="tag">Ngôn ngữ: {item.lang}</span>}
+        {item.time && <span className="tag">Thời lượng: {item.time}</span>}
         {item.episode_total && (
           <span className="tag">Số tập: {item.episode_total}</span>
         )}
@@ -384,10 +386,13 @@ const Detail = () => {
           if (found) defaultEp = found;
         }
         setCurrentEp(defaultEp);
-        
+
         // Kiểm tra xem có watch progress không
         const progress = getWatchProgress(id, defaultEp.name);
-        if (progress && shouldShowContinueWatching(progress.currentTime, progress.duration)) {
+        if (
+          progress &&
+          shouldShowContinueWatching(progress.currentTime, progress.duration)
+        ) {
           setSavedProgress(progress);
           setShowContinueWatching(true);
         }
@@ -400,7 +405,11 @@ const Detail = () => {
   useEffect(() => {
     const loadImages = async () => {
       if (!id || !item?.tmdb) return;
-      const { posterUrl, backdropUrl, overview: tmdbOverview } = await fetchTMDBImages(item.tmdb);
+      const {
+        posterUrl,
+        backdropUrl,
+        overview: tmdbOverview,
+      } = await fetchTMDBImages(item.tmdb);
       setPosterUrl(posterUrl);
       setBackdropUrl(backdropUrl);
       setOverview(tmdbOverview);
@@ -409,39 +418,45 @@ const Detail = () => {
   }, [id, item?.tmdb]);
 
   // ✅ Khi chọn tập → cập nhật state và URL
-  const handleSelectEpisode = useCallback((ep) => {
-    setCurrentEp(ep);
+  const handleSelectEpisode = useCallback(
+    (ep) => {
+      setCurrentEp(ep);
 
-    // Clear auto-play timers
-    clearAutoPlayTimers();
-    
-    // Ẩn continue watching notification khi chọn tập mới
-    setShowContinueWatching(false);
-    setSavedProgress(null);
+      // Clear auto-play timers
+      clearAutoPlayTimers();
 
-    // cập nhật URL param
-    const searchParams = new URLSearchParams(location.search);
-    searchParams.set("ep", ep.name);
-    history.replace({
-      pathname: location.pathname,
-      search: searchParams.toString(),
-    });
+      // Ẩn continue watching notification khi chọn tập mới
+      setShowContinueWatching(false);
+      setSavedProgress(null);
 
-    // Cuộn về video
-    if (videoRef.current) {
-      videoRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
+      // cập nhật URL param
+      const searchParams = new URLSearchParams(location.search);
+      searchParams.set("ep", ep.name);
+      history.replace({
+        pathname: location.pathname,
+        search: searchParams.toString(),
       });
-    }
-    
-    // Kiểm tra watch progress cho tập mới
-    const progress = getWatchProgress(id, ep.name);
-    if (progress && shouldShowContinueWatching(progress.currentTime, progress.duration)) {
-      setSavedProgress(progress);
-      setShowContinueWatching(true);
-    }
-  }, [location.search, location.pathname, history, clearAutoPlayTimers, id]);
+
+      // Cuộn về video
+      if (videoRef.current) {
+        videoRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+
+      // Kiểm tra watch progress cho tập mới
+      const progress = getWatchProgress(id, ep.name);
+      if (
+        progress &&
+        shouldShowContinueWatching(progress.currentTime, progress.duration)
+      ) {
+        setSavedProgress(progress);
+        setShowContinueWatching(true);
+      }
+    },
+    [location.search, location.pathname, history, clearAutoPlayTimers, id],
+  );
 
   // ✅ Navigate to previous episode
   const handlePrevEpisode = useCallback(() => {
@@ -468,7 +483,7 @@ const Detail = () => {
   const handleCancelAutoPlay = useCallback(() => {
     clearAutoPlayTimers();
   }, [clearAutoPlayTimers]);
-  
+
   // ✅ Handle continue watching
   const handleContinueWatching = useCallback(() => {
     const video = videoRef.current;
@@ -478,7 +493,7 @@ const Detail = () => {
       setSavedProgress(null);
     }
   }, [savedProgress]);
-  
+
   // ✅ Handle start from beginning
   const handleStartFromBeginning = useCallback(() => {
     const video = videoRef.current;
@@ -549,7 +564,7 @@ const Detail = () => {
     const handleTimeUpdate = () => {
       const currentTime = video.currentTime;
       const duration = video.duration;
-      
+
       // Lưu watch progress mỗi 5 giây
       if (currentTime > 0 && duration > 0) {
         if (!saveProgressIntervalRef.current) {
@@ -564,23 +579,27 @@ const Detail = () => {
                 {
                   title: item.title || item.name,
                   poster: poster_url,
-                  slug: item.slug
-                }
+                  slug: item.slug,
+                },
               );
             }
           }, 5000);
         }
       }
 
-      // Kiểm tra nếu video còn 30 giây cuối và chưa trigger
-      if (duration - currentTime <= 30 && !hasTriggeredAutoPlay && autoPlayEnabled) {
+      // Kiểm tra nếu video còn 25 giây cuối và chưa trigger
+      if (
+        duration - currentTime <= 25 &&
+        !hasTriggeredAutoPlay &&
+        autoPlayEnabled
+      ) {
         const currentIndex = getCurrentEpisodeIndex();
         if (
           currentIndex !== -1 &&
           currentIndex < item?.episodes?.[0]?.server_data?.length - 1
         ) {
           hasTriggeredAutoPlay = true;
-          
+
           // Hiện thông báo tự động phát
           setShowAutoPlayNotice(true);
           setAutoPlayCountdown(10);
@@ -620,7 +639,7 @@ const Detail = () => {
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("ended", handleVideoEnded);
       clearAutoPlayTimers();
-      
+
       // Clear save progress interval
       if (saveProgressIntervalRef.current) {
         clearInterval(saveProgressIntervalRef.current);
@@ -664,30 +683,32 @@ const Detail = () => {
   // Get absolute image URL for social sharing
   const getAbsoluteImageUrl = useCallback((imageUrl) => {
     if (!imageUrl) return `${window.location.origin}/poster-mau.png`;
-    if (imageUrl.startsWith('http')) return imageUrl;
+    if (imageUrl.startsWith("http")) return imageUrl;
     return `${window.location.origin}${imageUrl}`;
   }, []);
 
   // Generate structured data for SEO
   const structuredData = useMemo(() => {
     if (!item) return null;
-    
+
     return {
       "@context": "https://schema.org",
       "@type": "Movie",
-      "name": item.title || item.name,
-      "description": overview || item.content?.replace(/<[^>]+>/g, ""),
-      "image": getAbsoluteImageUrl(poster_url),
-      "datePublished": item.year,
-      "genre": item.category?.map(cat => cat.name).join(", "),
-      "contentRating": item.quality,
-      "inLanguage": item.lang || "vi",
-      "duration": item.time,
-      "aggregateRating": item.tmdb?.vote_average ? {
-        "@type": "AggregateRating",
-        "ratingValue": item.tmdb.vote_average,
-        "ratingCount": item.tmdb.vote_count
-      } : undefined
+      name: item.title || item.name,
+      description: overview || item.content?.replace(/<[^>]+>/g, ""),
+      image: getAbsoluteImageUrl(poster_url),
+      datePublished: item.year,
+      genre: item.category?.map((cat) => cat.name).join(", "),
+      contentRating: item.quality,
+      inLanguage: item.lang || "vi",
+      duration: item.time,
+      aggregateRating: item.tmdb?.vote_average
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: item.tmdb.vote_average,
+            ratingCount: item.tmdb.vote_count,
+          }
+        : undefined,
     };
   }, [item, overview, poster_url, getAbsoluteImageUrl]);
 
@@ -703,33 +724,81 @@ const Detail = () => {
             </title>
             <meta
               name="description"
-              content={overview || item.content?.replace(/<[^>]+>/g, "") || "Xem phim online chất lượng HD"}
+              content={
+                overview ||
+                item.content?.replace(/<[^>]+>/g, "") ||
+                "Xem phim online chất lượng HD"
+              }
             />
-            <meta name="keywords" content={`${item.title || item.name}, xem phim ${item.title || item.name}, ${item.category?.map(c => c.name).join(", ")}, phim ${item.year}`} />
+            <meta
+              name="keywords"
+              content={`${item.title || item.name}, xem phim ${item.title || item.name}, ${item.category?.map((c) => c.name).join(", ")}, phim ${item.year}`}
+            />
             <link rel="icon" href="/logo.png" />
-            <link rel="canonical" href={`${window.location.origin}/movie/${id}${currentEp ? `?ep=${currentEp.name}` : ''}`} />
-            
+            <link
+              rel="canonical"
+              href={`${window.location.origin}/movie/${id}${currentEp ? `?ep=${currentEp.name}` : ""}`}
+            />
+
             {/* Open Graph */}
             <meta property="og:type" content="video.movie" />
-            <meta property="og:title" content={`${item.title || item.name} ${currentEp ? `- Tập ${currentEp.name}` : ""}`} />
-            <meta property="og:description" content={overview || item.content?.replace(/<[^>]+>/g, "") || "Xem phim online chất lượng HD"} />
-            <meta property="og:image" content={getAbsoluteImageUrl(poster_url)} />
-            <meta property="og:image:secure_url" content={getAbsoluteImageUrl(poster_url)} />
+            <meta
+              property="og:title"
+              content={`${item.title || item.name} ${currentEp ? `- Tập ${currentEp.name}` : ""}`}
+            />
+            <meta
+              property="og:description"
+              content={
+                overview ||
+                item.content?.replace(/<[^>]+>/g, "") ||
+                "Xem phim online chất lượng HD"
+              }
+            />
+            <meta
+              property="og:image"
+              content={getAbsoluteImageUrl(poster_url)}
+            />
+            <meta
+              property="og:image:secure_url"
+              content={getAbsoluteImageUrl(poster_url)}
+            />
             <meta property="og:image:width" content="500" />
             <meta property="og:image:height" content="750" />
-            <meta property="og:image:alt" content={`Poster phim ${item.title || item.name}`} />
+            <meta
+              property="og:image:alt"
+              content={`Poster phim ${item.title || item.name}`}
+            />
             <meta property="og:image:type" content="image/jpeg" />
-            <meta property="og:url" content={`${window.location.origin}/movie/${id}`} />
+            <meta
+              property="og:url"
+              content={`${window.location.origin}/movie/${id}`}
+            />
             <meta property="og:site_name" content="Ổ Phim" />
             <meta property="og:locale" content="vi_VN" />
-            
+
             {/* Twitter Card */}
             <meta name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:title" content={`${item.title || item.name} ${currentEp ? `- Tập ${currentEp.name}` : ""}`} />
-            <meta name="twitter:description" content={overview || item.content?.replace(/<[^>]+>/g, "") || "Xem phim online chất lượng HD"} />
-            <meta name="twitter:image" content={getAbsoluteImageUrl(poster_url)} />
-            <meta name="twitter:image:alt" content={`Poster phim ${item.title || item.name}`} />
-            
+            <meta
+              name="twitter:title"
+              content={`${item.title || item.name} ${currentEp ? `- Tập ${currentEp.name}` : ""}`}
+            />
+            <meta
+              name="twitter:description"
+              content={
+                overview ||
+                item.content?.replace(/<[^>]+>/g, "") ||
+                "Xem phim online chất lượng HD"
+              }
+            />
+            <meta
+              name="twitter:image"
+              content={getAbsoluteImageUrl(poster_url)}
+            />
+            <meta
+              name="twitter:image:alt"
+              content={`Poster phim ${item.title || item.name}`}
+            />
+
             {/* Structured Data */}
             {structuredData && (
               <script type="application/ld+json">
@@ -755,9 +824,7 @@ const Detail = () => {
                 {item.title || item.name}{" "}
                 {currentEp ? `- Tập ${currentEp.name}` : ""}
               </h1>
-              <div className="genres">
-                {genresList}
-              </div>
+              <div className="genres">{genresList}</div>
               {/* ✅ Thêm các tag thông tin */}
               {movieTags}
 
@@ -881,7 +948,7 @@ const Detail = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Continue Watching Notice */}
                     {showContinueWatching && savedProgress && (
                       <div className="continue-watching-notice">
@@ -889,10 +956,13 @@ const Detail = () => {
                           <i className="bx bx-time-five"></i>
                           <div className="continue-watching-text">
                             <p className="continue-watching-title">
-                              Tiếp tục xem từ {formatTime(savedProgress.currentTime)}?
+                              Tiếp tục xem từ{" "}
+                              {formatTime(savedProgress.currentTime)}?
                             </p>
                             <p className="continue-watching-info">
-                              Bạn đã xem đến {Math.round(savedProgress.percentage)}% của tập này
+                              Bạn đã xem đến{" "}
+                              {Math.round(savedProgress.percentage)}% của tập
+                              này
                             </p>
                           </div>
                           <div className="continue-watching-actions">

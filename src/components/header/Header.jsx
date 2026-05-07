@@ -294,7 +294,7 @@ const Header = () => {
     }
   };
 
-  // ✅ Handle suggestion click
+  // ✅ Handle suggestion click with better touch support
   const handleSuggestionClick = useCallback(
     (movie, e) => {
       if (e) {
@@ -316,6 +316,26 @@ const Header = () => {
       setIsMobileMenuOpen(false);
     },
     [history],
+  );
+
+  // ✅ Handle touch events to prevent scroll-click conflicts
+  const handleTouchStart = useCallback((e) => {
+    // Mark the touch start position
+    e.currentTarget.dataset.touchStartY = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (movie, e) => {
+      const touchStartY = parseFloat(e.currentTarget.dataset.touchStartY || 0);
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaY = Math.abs(touchEndY - touchStartY);
+
+      // Only trigger click if movement is less than 10px (not scrolling)
+      if (deltaY < 10) {
+        handleSuggestionClick(movie, e);
+      }
+    },
+    [handleSuggestionClick],
   );
 
   const toggleSubmenu = (index) => {
@@ -449,10 +469,8 @@ const Header = () => {
                     <div
                       key={movie._id}
                       className="suggestion-item"
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        handleSuggestionClick(movie, e);
-                      }}
+                      onTouchStart={handleTouchStart}
+                      onTouchEnd={(e) => handleTouchEnd(movie, e)}
                       onClick={(e) => handleSuggestionClick(movie, e)}
                     >
                       <div

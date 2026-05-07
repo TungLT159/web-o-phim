@@ -379,6 +379,8 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     top: 8px;
     width: 100%;
     margin-bottom: 1rem;
+    max-height: 60vh;
+    touch-action: pan-y;
   }
 
   .suggestion-loading {
@@ -397,11 +399,19 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 
     &:hover {
       background: rgba(255, 61, 113, 0.15);
       border-color: rgba(255, 61, 113, 0.3);
       transform: translateX(4px);
+    }
+
+    &:active {
+      background: rgba(255, 61, 113, 0.25);
+      border-color: rgba(255, 61, 113, 0.4);
+      transform: scale(0.98);
     }
 
     .suggestion-poster {
@@ -412,11 +422,13 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
       overflow: hidden;
       background: center/cover no-repeat rgba(255, 255, 255, 0.05);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
     }
 
     .suggestion-info {
       flex: 1;
       min-width: 0;
+      pointer-events: none;
 
       .suggestion-title {
         font-size: 0.95rem;
@@ -444,6 +456,32 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
             font-weight: 600;
             color: $main-color;
           }
+        }
+      }
+    }
+  }
+
+  // Mobile-specific improvements
+  @include mobile {
+    &.mobile .suggestion-item {
+      padding: 14px 12px;
+      min-height: 90px;
+      gap: 14px;
+
+      .suggestion-poster {
+        width: 55px;
+        height: 75px;
+      }
+
+      .suggestion-info {
+        .suggestion-title {
+          font-size: 1rem;
+          line-height: 1.4;
+        }
+
+        .suggestion-meta {
+          font-size: 0.9rem;
+          margin-top: 6px;
         }
       }
     }

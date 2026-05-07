@@ -31,6 +31,11 @@ const EpisodeScroll = ({ episodes, currentEpisode, onSelectEpisode }) => {
     const handleKeyDown = (e) => {
       if (!episodes || episodes.length === 0) return;
 
+      // Bỏ qua nếu người dùng đang gõ trong input hoặc textarea
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
+        return;
+      }
+
       const currentIndex = focusedIndex >= 0 ? focusedIndex : 0;
       let newIndex = currentIndex;
 
