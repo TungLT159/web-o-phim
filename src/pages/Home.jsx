@@ -189,16 +189,16 @@ export default function Home() {
             type="Theo lượt xem"
           />
 
-          <RankingSection
+          {/* <RankingSection
             title="Phim Đang Hot"
             movies={popularMovies}
             icon="bx bxs-flame"
             type="Phim chiếu rạp"
-          />
+          /> */}
         </div>
       </div>
 
-      {/* <div className="section mb-3">
+      <div className="section mb-3">
         <div className="section__header mb-2">
           <h2>Phim chiếu rạp</h2>
           <Link to={`/danh-sach/${movieType.phimChieuRap}`}>
@@ -206,7 +206,7 @@ export default function Home() {
           </Link>
         </div>
         <MovieList category={category.movie} type={movieType.phimChieuRap} />
-      </div> */}
+      </div>
 
       <div className="section mb-3">
         <div className="section__header mb-2">

@@ -11,6 +11,7 @@ export const movieType = {
   phimMoi: "phim-moi",
   phimHoatHinh: "hoat-hinh",
   phimLe: "phim-le",
+  phimBo: "phim-bo",
 };
 
 export const tvType = {

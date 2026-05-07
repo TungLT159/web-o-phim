@@ -96,55 +96,126 @@ const HeroSlideItem = (props) => {
     loadImages();
   }, [item]);
 
+  // Hàm lấy trailer từ TMDB
+  const fetchTMDBTrailer = async () => {
+    if (!item?.tmdb?.id) return null;
+    
+    try {
+      const type = item.tmdb.type || "movie";
+      
+      // Thử lấy trailer tiếng Việt trước
+      let response = await axiosClient.get(
+        `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=vi-VN`
+      );
+      
+      // Nếu không có trailer tiếng Việt, lấy tiếng Anh
+      if (!response.results || response.results.length === 0) {
+        response = await axiosClient.get(
+          `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=en-US`
+        );
+      }
+      
+      // Ưu tiên: Trailer chính thức > Teaser > Video đầu tiên
+      const trailer = response.results?.find(
+        video => video.type === "Trailer" && video.site === "YouTube"
+      ) || response.results?.find(
+        video => video.type === "Teaser" && video.site === "YouTube"
+      ) || response.results?.find(
+        video => video.site === "YouTube"
+      );
+      
+      if (trailer) {
+        return `https://www.youtube.com/embed/${trailer.key}?autoplay=1`;
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy trailer từ TMDB:", error);
+    }
+    
+    return null;
+  };
+
   const setModalActive = async () => {
     const modal = document.querySelector(`#modal_${item.id}`);
     const modalContent = modal.querySelector(".modal__content");
 
-    try {
-      if (!item.slug) return;
+    // Hiển thị loading
+    modalContent.innerHTML = `
+      <div class="trailer-loading">
+        <i class='bx bx-loader-alt bx-spin'></i>
+        <p>Đang tải trailer...</p>
+      </div>
+      <div class="modal__content__close">
+        <i class="bx bx-x"></i>
+      </div>
+    `;
+    
+    // Add close button event listener ngay
+    const closeBtn = modalContent.querySelector('.modal__content__close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+      });
+    }
+    
+    modal.classList.add("active");
 
-      const response = await axiosClient.get(
-        `https://ophim1.com/v1/api/phim/${item.slug}`,
-      );
-      const movieData = response.data;
-      setMovie(movieData);
-      let trailerUrl = movieData.item.trailer_url;
-      if (trailerUrl && trailerUrl.includes("watch?v=")) {
-        trailerUrl = trailerUrl.replace("watch?v=", "embed/");
-      }
+    try {
+      // Lấy trailer từ TMDB
+      const trailerUrl = await fetchTMDBTrailer();
 
       if (trailerUrl) {
         modalContent.innerHTML = `
-          <div style="text-align:center;">
-            <iframe width="100%" height="500px" src="${trailerUrl}" title="trailer" frameborder="0" allowfullscreen></iframe>
-            <button id="closeBtn_${item.id}" style="margin-top:10px; padding:8px 16px; cursor:pointer; border:none; border-radius:8px; background:#ff4444; color:white;">
-              X
-            </button>
+          <div class="trailer-header">
+            <h3><i class='bx bx-play-circle'></i> ${movie?.item?.name || item.name}</h3>
+          </div>
+          <div class="trailer-container">
+            <iframe src="${trailerUrl}" title="trailer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="modal__content__close">
+            <i class="bx bx-x"></i>
           </div>
         `;
       } else {
         modalContent.innerHTML = `
-          <div style="padding:20px; text-align:center;">
+          <div class="no-trailer">
+            <i class='bx bx-video-off'></i>
             <p>Không tìm thấy trailer cho phim này.</p>
-            <button id="closeBtn_${item.id}" style="margin-top:10px; padding:8px 16px; cursor:pointer; border:none; border-radius:8px; background:#ff4444; color:white;">
-              X
-            </button>
+          </div>
+          <div class="modal__content__close">
+            <i class="bx bx-x"></i>
           </div>
         `;
       }
 
-      const closeBtn = modalContent.querySelector(`#closeBtn_${item.id}`);
-      if (closeBtn) {
-        closeBtn.addEventListener("click", () => {
-          modal.classList.remove("active");
-          modalContent.innerHTML = "";
+      // Re-add close button event listener
+      const closeBtnFinal = modalContent.querySelector('.modal__content__close');
+      if (closeBtnFinal) {
+        closeBtnFinal.addEventListener('click', () => {
+          modal.classList.remove('active');
+          modalContent.innerHTML = '';
         });
       }
-
-      modal.classList.add("active");
     } catch (err) {
-      console.error("Lỗi khi gọi API:", err);
-      modalContent.innerHTML = "Lỗi khi tải trailer";
+      console.error("Lỗi khi tải trailer:", err);
+      modalContent.innerHTML = `
+        <div class="error-message">
+          <i class='bx bx-error-circle'></i>
+          <p>Lỗi khi tải trailer. Vui lòng thử lại sau.</p>
+        </div>
+        <div class="modal__content__close">
+          <i class="bx bx-x"></i>
+        </div>
+      `;
+      
+      // Add close button event listener for error state
+      const closeBtnError = modalContent.querySelector('.modal__content__close');
+      if (closeBtnError) {
+        closeBtnError.addEventListener('click', () => {
+          modal.classList.remove('active');
+          modalContent.innerHTML = '';
+        });
+      }
     }
   };
 

@@ -253,7 +253,7 @@ import {
 } from "../../utils/watchHistoryManager";
 import "./detail.scss";
 import { Helmet } from "react-helmet";
-import MovieList from "../../components/movie-list/MovieList";
+import SimilarMovies from "../../components/similar-movies/SimilarMovies";
 import EpisodeScroll from "../../components/episode-scroll/EpisodeScroll";
 
 const Detail = () => {
@@ -929,11 +929,7 @@ const Detail = () => {
               <div className="section__header mb-2">
                 <h2>Tương tự</h2>
               </div>
-              <MovieList
-                category={item.category[0].slug}
-                type="similar"
-                id={item.id}
-              />
+              <SimilarMovies movie={item} />
             </div>
           </div>
         </>

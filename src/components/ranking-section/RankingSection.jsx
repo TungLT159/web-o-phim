@@ -66,7 +66,7 @@ const RankingSection = ({ title, movies, icon, type }) => {
   };
 
   const getRankIcon = (rank) => {
-    if (rank === 1) return "👑";
+    if (rank === 1) return "🥇";
     if (rank === 2) return "🥈";
     if (rank === 3) return "🥉";
     return rank;
@@ -107,12 +107,12 @@ const RankingSection = ({ title, movies, icon, type }) => {
           spaceBetween={20}
           slidesPerView={1}
           navigation={{
-            nextEl: `.swiper-button-next-${title.replace(/\s+/g, '-')}`,
-            prevEl: `.swiper-button-prev-${title.replace(/\s+/g, '-')}`,
+            nextEl: `.swiper-button-next-${title.replace(/\s+/g, "-")}`,
+            prevEl: `.swiper-button-prev-${title.replace(/\s+/g, "-")}`,
           }}
-          pagination={{ 
+          pagination={{
             clickable: true,
-            dynamicBullets: true 
+            dynamicBullets: true,
           }}
           autoplay={{
             delay: 5000,
@@ -141,13 +141,15 @@ const RankingSection = ({ title, movies, icon, type }) => {
           {moviesWithImages.map((movie) => (
             <SwiperSlide key={movie.slug}>
               <Link to={`/movie/${movie.slug}`} className="ranking-card">
-                <div className={`ranking-card__rank ${getRankClass(movie.rank)}`}>
+                <div
+                  className={`ranking-card__rank ${getRankClass(movie.rank)}`}
+                >
                   <span className="rank-number">{getRankIcon(movie.rank)}</span>
                 </div>
 
                 <div className="ranking-card__poster">
                   <img src={movie.posterUrl} alt={movie.title || movie.name} />
-                  
+
                   <div className="ranking-card__overlay">
                     <div className="play-button">
                       <i className="bx bx-play"></i>
@@ -163,7 +165,7 @@ const RankingSection = ({ title, movies, icon, type }) => {
                   <h3 className="ranking-card__title">
                     {movie.title || movie.name}
                   </h3>
-                  
+
                   <div className="ranking-card__meta">
                     {movie.year && (
                       <span className="meta-item">
@@ -171,7 +173,7 @@ const RankingSection = ({ title, movies, icon, type }) => {
                         {movie.year}
                       </span>
                     )}
-                    
+
                     {movie.rating && (
                       <span className="meta-item rating">
                         <i className="bx bxs-star"></i>
@@ -193,10 +195,14 @@ const RankingSection = ({ title, movies, icon, type }) => {
         </Swiper>
 
         {/* Navigation Buttons */}
-        <div className={`swiper-button-prev swiper-button-prev-${title.replace(/\s+/g, '-')}`}>
+        <div
+          className={`swiper-button-prev swiper-button-prev-${title.replace(/\s+/g, "-")}`}
+        >
           <i className="bx bx-chevron-left"></i>
         </div>
-        <div className={`swiper-button-next swiper-button-next-${title.replace(/\s+/g, '-')}`}>
+        <div
+          className={`swiper-button-next swiper-button-next-${title.replace(/\s+/g, "-")}`}
+        >
           <i className="bx bx-chevron-right"></i>
         </div>
       </div>

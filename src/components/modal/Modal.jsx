@@ -6,15 +6,47 @@ import './modal.scss';
 const Modal = props => {
 
     const [active, setActive] = useState(false);
+    const modalRef = useRef(null);
 
     useEffect(() => {
         setActive(props.active);
     }, [props.active]);
 
-    return (
-        <div id={props.id} className={`modal ${active ? 'active' : ''}`}>
-            {props.children}
+    useEffect(() => {
+        const handleEscape = (e) => {
+            if (e.key === 'Escape' && active) {
+                closeModal();
+            }
+        };
 
+        const handleClickOutside = (e) => {
+            if (modalRef.current && e.target === modalRef.current && active) {
+                closeModal();
+            }
+        };
+
+        document.addEventListener('keydown', handleEscape);
+        document.addEventListener('click', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [active]);
+
+    const closeModal = () => {
+        if (modalRef.current) {
+            modalRef.current.classList.remove('active');
+            const modalContent = modalRef.current.querySelector('.modal__content');
+            if (modalContent) {
+                modalContent.innerHTML = '';
+            }
+        }
+    };
+
+    return (
+        <div ref={modalRef} id={props.id} className={`modal ${active ? 'active' : ''}`}>
+            {props.children}
         </div>
     );
 }
