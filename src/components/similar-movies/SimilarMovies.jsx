@@ -50,33 +50,36 @@ const SimilarMovies = ({ movie }) => {
         // Ophim API không có endpoint này, skip
 
         // 3. Ưu tiên 3: Tìm theo từ khóa
-        // if (movie.name && allMovies.length < 20) {
-        //   const keywords = movie.name
-        //     .split(/[\s\-:]+/)
-        //     .filter((word) => word.length > 3)
-        //     .slice(0, 3); // Lấy 3 từ khóa đầu
+        if (movie.name && allMovies.length < 20) {
+          const keywords = movie.name
+            .split(/[\s\-:]+/)
+            .filter((word) => word.length > 3)
+            .slice(0, 3); // Lấy 3 từ khóa đầu
 
-        //   for (const keyword of keywords) {
-        //     try {
-        //       const keywordResponse = await axiosClient.get(
-        //         `/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=8`
-        //       );
+          for (const keyword of keywords) {
+            try {
+              const keywordResponse = await axiosClient.get(
+                `/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=8`,
+              );
 
-        //       if (keywordResponse.data?.items) {
-        //         keywordResponse.data.items.forEach((item) => {
-        //           if (!seenIds.has(item._id) && allMovies.length < 20) {
-        //             allMovies.push({ ...item, priority: 3 });
-        //             seenIds.add(item._id);
-        //           }
-        //         });
-        //       }
-        //     } catch (error) {
-        //       console.log(`Không tìm thấy phim theo từ khóa "${keyword}":`, error);
-        //     }
+              if (keywordResponse.data?.items) {
+                keywordResponse.data.items.forEach((item) => {
+                  if (!seenIds.has(item._id) && allMovies.length < 20) {
+                    allMovies.push({ ...item, priority: 3 });
+                    seenIds.add(item._id);
+                  }
+                });
+              }
+            } catch (error) {
+              console.log(
+                `Không tìm thấy phim theo từ khóa "${keyword}":`,
+                error,
+              );
+            }
 
-        //     if (allMovies.length >= 20) break;
-        //   }
-        // }
+            if (allMovies.length >= 20) break;
+          }
+        }
 
         // 4. Ưu tiên 4: Tìm theo thể loại
         if (
