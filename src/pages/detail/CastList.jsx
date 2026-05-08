@@ -1,26 +1,21 @@
 import React, { useState, useEffect } from "react";
 
-import { useParams } from "react-router";
-
 import axiosClient from "../../api/axiosClient";
 import { getTMDBProfileImage } from "../../utils/tmdbImageFetcher";
 import { SwiperSlide, Swiper } from "swiper/react";
 
 const CastList = (props) => {
-  const { category } = useParams();
-
   const [casts, setCasts] = useState([]);
-  const [profile_path, setProfilePath] = useState("");
+
   useEffect(() => {
     const getCredits = async () => {
       const response = await axiosClient.get(
         `https://ophim1.com/v1/api/phim/${props.id}/peoples`
       );
-      setProfilePath(response.data.profile_sizes.w45);
       setCasts(response.data.peoples.slice(0, 8));
     };
     getCredits();
-  }, [category, props.id]);
+  }, [props.id]);
   return (
     <div className="casts">
       <Swiper

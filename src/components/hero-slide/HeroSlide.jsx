@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 
-import SwiperCore, { Autoplay } from "swiper";
+import { Autoplay } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
 import Button, { OutlineButton } from "../button/Button";
@@ -10,11 +10,9 @@ import tmdbApi, { movieType } from "../../api/tmdbApi";
 import axiosClient from "../../api/axiosClient";
 import { fetchTMDBImages } from "../../utils/tmdbImageFetcher";
 import "./hero-slide.scss";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 const HeroSlide = () => {
-  SwiperCore.use([Autoplay]);
-
   const [movieItems, setMovieItems] = useState([]);
 
   useEffect(() => {
@@ -61,7 +59,7 @@ const HeroSlide = () => {
 };
 
 const HeroSlideItem = (props) => {
-  let history = useHistory();
+  let navigate = useNavigate();
   const item = props.item;
   const [movie, setMovie] = useState(null);
   const [poster_url, setPosterUrl] = useState("/poster-mau.png");
@@ -88,7 +86,11 @@ const HeroSlideItem = (props) => {
   useEffect(() => {
     const loadImages = async () => {
       if (!item?.tmdb) return;
-      const { posterUrl, backdropUrl, overview: tmdbOverview } = await fetchTMDBImages(item.tmdb);
+      const {
+        posterUrl,
+        backdropUrl,
+        overview: tmdbOverview,
+      } = await fetchTMDBImages(item.tmdb);
       setPosterUrl(posterUrl);
       setBackdropUrl(backdropUrl);
       setOverview(tmdbOverview);
@@ -99,38 +101,39 @@ const HeroSlideItem = (props) => {
   // Hàm lấy trailer từ TMDB
   const fetchTMDBTrailer = async () => {
     if (!item?.tmdb?.id) return null;
-    
+
     try {
       const type = item.tmdb.type || "movie";
-      
+
       // Thử lấy trailer tiếng Việt trước
       let response = await axiosClient.get(
-        `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=vi-VN`
+        `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=vi-VN`,
       );
-      
+
       // Nếu không có trailer tiếng Việt, lấy tiếng Anh
       if (!response.results || response.results.length === 0) {
         response = await axiosClient.get(
-          `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=en-US`
+          `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=en-US`,
         );
       }
-      
+
       // Ưu tiên: Trailer chính thức > Teaser > Video đầu tiên
-      const trailer = response.results?.find(
-        video => video.type === "Trailer" && video.site === "YouTube"
-      ) || response.results?.find(
-        video => video.type === "Teaser" && video.site === "YouTube"
-      ) || response.results?.find(
-        video => video.site === "YouTube"
-      );
-      
+      const trailer =
+        response.results?.find(
+          (video) => video.type === "Trailer" && video.site === "YouTube",
+        ) ||
+        response.results?.find(
+          (video) => video.type === "Teaser" && video.site === "YouTube",
+        ) ||
+        response.results?.find((video) => video.site === "YouTube");
+
       if (trailer) {
         return `https://www.youtube.com/embed/${trailer.key}?autoplay=1`;
       }
     } catch (error) {
       console.error("Lỗi khi lấy trailer từ TMDB:", error);
     }
-    
+
     return null;
   };
 
@@ -148,16 +151,16 @@ const HeroSlideItem = (props) => {
         <i class="bx bx-x"></i>
       </div>
     `;
-    
+
     // Add close button event listener ngay
-    const closeBtn = modalContent.querySelector('.modal__content__close');
+    const closeBtn = modalContent.querySelector(".modal__content__close");
     if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        modal.classList.remove('active');
-        modalContent.innerHTML = '';
+      closeBtn.addEventListener("click", () => {
+        modal.classList.remove("active");
+        modalContent.innerHTML = "";
       });
     }
-    
+
     modal.classList.add("active");
 
     try {
@@ -189,11 +192,13 @@ const HeroSlideItem = (props) => {
       }
 
       // Re-add close button event listener
-      const closeBtnFinal = modalContent.querySelector('.modal__content__close');
+      const closeBtnFinal = modalContent.querySelector(
+        ".modal__content__close",
+      );
       if (closeBtnFinal) {
-        closeBtnFinal.addEventListener('click', () => {
-          modal.classList.remove('active');
-          modalContent.innerHTML = '';
+        closeBtnFinal.addEventListener("click", () => {
+          modal.classList.remove("active");
+          modalContent.innerHTML = "";
         });
       }
     } catch (err) {
@@ -207,13 +212,15 @@ const HeroSlideItem = (props) => {
           <i class="bx bx-x"></i>
         </div>
       `;
-      
+
       // Add close button event listener for error state
-      const closeBtnError = modalContent.querySelector('.modal__content__close');
+      const closeBtnError = modalContent.querySelector(
+        ".modal__content__close",
+      );
       if (closeBtnError) {
-        closeBtnError.addEventListener('click', () => {
-          modal.classList.remove('active');
-          modalContent.innerHTML = '';
+        closeBtnError.addEventListener("click", () => {
+          modal.classList.remove("active");
+          modalContent.innerHTML = "";
         });
       }
     }
@@ -234,7 +241,7 @@ const HeroSlideItem = (props) => {
               "Đang tải..."}
           </div>
           <div className="btns">
-            <Button onClick={() => history.push("/movie/" + item.slug)}>
+            <Button onClick={() => navigate("/movie/" + item.slug)}>
               Xem ngay
             </Button>
             <OutlineButton onClick={setModalActive}>Xem trailer</OutlineButton>

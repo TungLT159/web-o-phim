@@ -6,6 +6,10 @@
   padding: 0;
   margin: 0;
   box-sizing: border-box;
+  
+  &.bx, &[class^='bx-'], &[class*=' bx-'] {
+    box-sizing: content-box !important;
+  }
 }
 
 html{
@@ -48,6 +52,14 @@ button, input{
   outline: 0;
 }
 
+i {
+  border: none !important;
+  outline: none !important;
+  background: none !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+
 ul{
   list-style-type: none;
 }
@@ -58,6 +70,38 @@ img{
 
 iframe{
   border: 0;
+}
+
+// Fix boxicons border issue - Complete fix
+.bx, [class^='bx-'], [class*=' bx-'] {
+  border: none !important;
+  outline: none !important;
+  background: none !important;
+  background-color: transparent !important;
+  display: inline-block !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  font-family: 'boxicons' !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  font-variant: normal !important;
+  text-transform: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  box-sizing: content-box !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  
+  &::before, &::after {
+    border: none !important;
+    outline: none !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
 }
 
 .container {

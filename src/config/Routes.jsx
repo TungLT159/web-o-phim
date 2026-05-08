@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { Route, Switch, Redirect } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 // Lazy load page components
 const Home = lazy(() => import("../pages/Home"));
@@ -20,20 +20,18 @@ const PageLoader = () => (
   </div>
 );
 
-export default function Routes() {
+export default function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
-      <Switch>
-        <Route path="/" exact component={Home} />
-        <Route path="/:category/search/:keyword" component={Catalog} />
-        <Route path="/movie/:id" component={Detail} />
-        <Route path="/:category/:type" component={Catalog} />
-
-        {/* ✅ fallback route */}
-        {/* <Route path="*">
-          <Redirect to="/" />
-        </Route> */}
-      </Switch>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/:category/search/:keyword" element={<Catalog />} />
+        <Route path="/movie/:id" element={<Detail />} />
+        <Route path="/:category/:type" element={<Catalog />} />
+        
+        {/* fallback route */}
+        {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
+      </Routes>
     </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay } from "swiper";
+import { Autoplay } from "swiper/modules";
 import axiosClient from "../../api/axiosClient";
 import MovieCard from "../movie-card/MovieCard";
 import "./similar-movies.scss";

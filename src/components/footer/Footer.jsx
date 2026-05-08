@@ -1,7 +1,7 @@
 import React from "react";
 import "./footer.scss";
 import bg from "../../assets/footer-bg.jpg";
-import logo from "../../assets/tmovie.png";
+import logo from "../../assets/logo.png";
 import { Link } from "react-router-dom";
 import { movieType } from "../../api/tmdbApi";
 
@@ -16,17 +16,25 @@ const Footer = () => {
               <Link to="/">Ổ Phim</Link>
             </div>
             <p className="footer__description">
-              Khám phá thế giới điện ảnh với hàng ngàn bộ phim chất lượng cao. 
+              Khám phá thế giới điện ảnh với hàng ngàn bộ phim chất lượng cao.
               Trải nghiệm xem phim mượt mà, không quảng cáo với Ổ Phim.
             </p>
             <div className="footer__social">
-              <a href="#" className="social-link facebook" aria-label="Facebook">
+              <a
+                href="#"
+                className="social-link facebook"
+                aria-label="Facebook"
+              >
                 <i className="bx bxl-facebook"></i>
               </a>
               <a href="#" className="social-link twitter" aria-label="Twitter">
                 <i className="bx bxl-twitter"></i>
               </a>
-              <a href="#" className="social-link instagram" aria-label="Instagram">
+              <a
+                href="#"
+                className="social-link instagram"
+                aria-label="Instagram"
+              >
                 <i className="bx bxl-instagram"></i>
               </a>
               <a href="#" className="social-link youtube" aria-label="YouTube">
@@ -47,14 +55,10 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to={`/danh-sach/${movieType.phimMoi}`}>
-                  Phim Mới
-                </Link>
+                <Link to={`/danh-sach/${movieType.phimMoi}`}>Phim Mới</Link>
               </li>
               <li>
-                <Link to={`/danh-sach/${movieType.phimLe}`}>
-                  Phim Lẻ
-                </Link>
+                <Link to={`/danh-sach/${movieType.phimLe}`}>Phim Lẻ</Link>
               </li>
             </ul>
           </div>
@@ -66,9 +70,7 @@ const Footer = () => {
             </h3>
             <ul className="footer__links">
               <li>
-                <Link to={`/danh-sach/${movieType.phimBo}`}>
-                  Phim Bộ
-                </Link>
+                <Link to={`/danh-sach/${movieType.phimBo}`}>Phim Bộ</Link>
               </li>
               <li>
                 <Link to={`/danh-sach/${movieType.phimHoatHinh}`}>
@@ -87,7 +89,9 @@ const Footer = () => {
               <i className="bx bx-copyright"></i>
               {new Date().getFullYear()} Ổ Phim. All rights reserved.
             </p>
-            <p className="footer__tagline">Made with <i className="bx bxs-heart"></i> for movie lovers</p>
+            <p className="footer__tagline">
+              Made with <i className="bx bxs-heart"></i> for movie lovers
+            </p>
           </div>
           <div className="footer__stats">
             <div className="stat-item">

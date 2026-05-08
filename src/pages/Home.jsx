@@ -11,7 +11,6 @@ import { Helmet } from "react-helmet";
 export default function Home() {
   const [topRatedMovies, setTopRatedMovies] = useState([]);
   const [topViewedMovies, setTopViewedMovies] = useState([]);
-  const [popularMovies, setPopularMovies] = useState([]);
 
   useEffect(() => {
     const fetchRankingData = async () => {
@@ -83,19 +82,6 @@ export default function Home() {
         }
 
         setTopViewedMovies(sortedByViews);
-
-        // Fetch phim chiếu rạp cho popular
-        const cinemaResponse = await tmdbApi.getMoviesList(
-          movieType.phimChieuRap,
-          {
-            page: 1,
-            limit: 10,
-          },
-        );
-
-        const popularMovies = cinemaResponse.data?.items || [];
-        setPopularMovies(popularMovies);
-        console.log("✅ Popular movies:", popularMovies.length);
       } catch (error) {
         console.error("❌ Error fetching ranking data:", error);
       }

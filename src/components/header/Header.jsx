@@ -1,99 +1,13 @@
-// import React, { useRef, useEffect, useState } from "react";
-// import { Link, useLocation, useHistory } from "react-router-dom";
-
-// import "./header.scss";
-// import logo from "../../assets/tmovie.png";
-
-// const headerNav = [
-//   {
-//     display: "Trang chủ",
-//     path: "/",
-//   },
-//   {
-//     display: "Phim",
-//     path: "/movie",
-//   },
-// ];
-
-// const Header = () => {
-//   const { pathname } = useLocation();
-//   const history = useHistory();
-//   const headerRef = useRef(null);
-
-//   const [keyword, setKeyword] = useState("");
-
-//   const active = headerNav.findIndex((e) => e.path === pathname);
-
-//   useEffect(() => {
-//     const shrinkHeader = () => {
-//       if (
-//         document.body.scrollTop > 100 ||
-//         document.documentElement.scrollTop > 100
-//       ) {
-//         headerRef.current.classList.add("shrink");
-//       } else {
-//         headerRef.current.classList.remove("shrink");
-//       }
-//     };
-//     window.addEventListener("scroll", shrinkHeader);
-//     return () => {
-//       window.removeEventListener("scroll", shrinkHeader);
-//     };
-//   }, []);
-
-//   const goToSearch = (e) => {
-//     e.preventDefault();
-//     if (keyword.trim().length > 0) {
-//       history.push(`/movie/search/${keyword}`);
-//       setKeyword("");
-//     }
-//   };
-
-//   return (
-//     <div ref={headerRef} className="header">
-//       <div className="header__wrap container">
-//         <div className="logo">
-//           <img src={logo} alt="" />
-//           <Link to="/">XemPhim</Link>
-//         </div>
-
-//         <ul className="header__nav">
-//           {headerNav.map((e, i) => (
-//             <li key={i} className={`${i === active ? "active" : ""}`}>
-//               <Link to={e.path}>{e.display}</Link>
-//             </li>
-//           ))}
-//         </ul>
-
-//         {/* Search box */}
-//         <form className="header__search" onSubmit={goToSearch}>
-//           <input
-//             className="search-input"
-//             type="text"
-//             placeholder="Nhập tên phim..."
-//             value={keyword}
-//             onChange={(e) => setKeyword(e.target.value)}
-//           />
-//           <button type="submit" className="search-btn">
-//             🔍
-//           </button>
-//         </form>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Header;
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { Link, useLocation, useHistory } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./header.scss";
-import logo from "../../assets/tmovie.png";
+import logo from "../../assets/logo.png";
 import tmdbApi from "../../api/tmdbApi";
 import { fetchTMDBImagesForItems } from "../../utils/tmdbImageFetcher";
 
 const Header = () => {
   const { pathname } = useLocation();
-  const history = useHistory();
+  const navigate = useNavigate();
   const headerRef = useRef(null);
 
   const [keyword, setKeyword] = useState("");
@@ -166,6 +80,7 @@ const Header = () => {
       ],
     },
   ];
+
   const active = headerNav.findIndex((e) =>
     e.submenu?.some((sub) => pathname.startsWith(sub.path)),
   );
@@ -286,7 +201,7 @@ const Header = () => {
   const goToSearch = (e) => {
     e.preventDefault();
     if (keyword.trim().length > 0) {
-      history.push(`/movie/search/${keyword}`);
+      navigate(`/movie/search/${keyword}`);
       setKeyword("");
       setIsMobileMenuOpen(false);
       setShowSuggestions(false);
@@ -307,7 +222,7 @@ const Header = () => {
       // Navigate immediately - use slug field from API
       const movieId = movie.slug || movie._id;
       console.log("Navigating to:", `/movie/${movieId}`);
-      history.push(`/movie/${movieId}`);
+      navigate(`/movie/${movieId}`);
 
       // Then cleanup
       setKeyword("");
@@ -315,7 +230,7 @@ const Header = () => {
       setSuggestions([]);
       setIsMobileMenuOpen(false);
     },
-    [history],
+    [navigate],
   );
 
   // ✅ Handle touch events to prevent scroll-click conflicts

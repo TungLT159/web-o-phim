@@ -3,18 +3,17 @@ import { useParams, useLocation } from "react-router-dom";
 import PageHeader from "../components/page-header/PageHeader";
 import { Helmet } from "react-helmet";
 import MovieGrid from "../components/movie-grid/MovieGrid";
-import { movieType } from "../api/tmdbApi";
 
 const typeTitles = {
-  [movieType.phimChieuRap]: "Phim chiếu rạp",
-  [movieType.phimMoi]: "Phim mới",
-  [movieType.phimHoatHinh]: "Phim hoạt hình",
-  [movieType.phimLe]: "Phim lẻ",
+  "phim-chieu-rap": "Phim chiếu rạp",
+  "phim-moi": "Phim mới",
+  "hoat-hinh": "Phim hoạt hình",
+  "phim-le": "Phim lẻ",
   search: "Tìm kiếm phim",
 };
 
 const Catalog = () => {
-  const { category, keyword, type } = useParams();
+  const { category, keyword } = useParams();
   const location = useLocation();
   const [title, setTitle] = useState("Danh sách phim");
   

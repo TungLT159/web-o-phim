@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import axiosClient from "../api/axiosClient";
 import apiConfig from "../api/apiConfig";
 
@@ -113,7 +113,7 @@ export const getTMDBProfileImage = (profilePath) => {
  * @returns {object} {posterUrl, backdropUrl, overview, loading, error}
  */
 export const useTMDBImages = (tmdbInfo) => {
-  const [state, setState] = React.useState({
+  const [state, setState] = useState({
     posterUrl: FALLBACK_POSTER,
     backdropUrl: "",
     overview: "",
@@ -121,7 +121,7 @@ export const useTMDBImages = (tmdbInfo) => {
     error: null
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
 
     const loadImages = async () => {

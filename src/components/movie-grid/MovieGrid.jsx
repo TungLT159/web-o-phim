@@ -90,8 +90,8 @@
 
 // export default MovieGrid;
 import React, { useState, useEffect } from "react";
-import { useHistory, useLocation } from "react-router";
-import { useParams } from "react-router";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import tmdbApi from "../../api/tmdbApi";
 import "./movie-grid.scss";
 import MovieCard from "../movie-card/MovieCard";
@@ -103,7 +103,7 @@ const MovieGrid = (props) => {
   const [totalPage, setTotalPage] = useState(0);
 
   const { keyword, category, type } = useParams();
-  const history = useHistory();
+  const navigate = useNavigate();
   const location = useLocation();
   const query = new URLSearchParams(location.search);
   const pageFromUrl = parseInt(query.get("page")) || 1;
@@ -146,10 +146,10 @@ const MovieGrid = (props) => {
         setPage(pageNumber); // luôn tin pageNumber
         setTotalPage(Math.ceil(totalItems / totalItemsPerPage) || 0);
 
-        history.replace({
+        navigate({
           pathname: location.pathname,
           search: `?page=${pageNumber}`,
-        });
+        }, { replace: true });
       }
     } catch (error) {
       console.error("Lỗi gọi API:", error);
@@ -158,7 +158,8 @@ const MovieGrid = (props) => {
 
   useEffect(() => {
     getList(pageFromUrl);
-  }, [props.category, keyword, category, type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.category, keyword, category, type, pageFromUrl]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPage && newPage !== page) {
@@ -167,7 +168,7 @@ const MovieGrid = (props) => {
       // ✅ cập nhật query param page
       const searchParams = new URLSearchParams(location.search);
       searchParams.set("page", newPage);
-      history.push({
+      navigate({
         pathname: location.pathname,
         search: searchParams.toString(),
       });

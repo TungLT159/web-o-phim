@@ -587,13 +587,31 @@
       }
 
       > i {
-        font-size: 3rem;
-        color: #ff3d71;
+        font-size: 3rem !important;
+        color: #ff3d71 !important;
         flex-shrink: 0;
         animation: pulse 2s ease-in-out infinite;
+        border: none !important;
+        outline: none !important;
+        background: none !important;
+        background-color: transparent !important;
+        display: inline-block !important;
+        line-height: 1 !important;
+        font-family: 'boxicons' !important;
+        font-style: normal !important;
+        font-weight: normal !important;
+        text-rendering: auto !important;
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        box-sizing: content-box !important;
+        padding: 0 !important;
+        width: auto !important;
+        height: auto !important;
+        box-shadow: none !important;
+        text-decoration: none !important;
 
         @include mobile {
-          font-size: 2.5rem;
+          font-size: 2.5rem !important;
         }
       }
 
@@ -966,10 +984,28 @@
     gap: 1.5rem;
 
     > i {
-      font-size: 3rem;
-      color: #ffc107;
+      font-size: 3rem !important;
+      color: #ffc107 !important;
       flex-shrink: 0;
       animation: pulse 2s ease-in-out infinite;
+      border: none !important;
+      outline: none !important;
+      background: none !important;
+      background-color: transparent !important;
+      display: inline-block !important;
+      line-height: 1 !important;
+      font-family: 'boxicons' !important;
+      font-style: normal !important;
+      font-weight: normal !important;
+      text-rendering: auto !important;
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+      box-sizing: content-box !important;
+      padding: 0 !important;
+      width: auto !important;
+      height: auto !important;
+      box-shadow: none !important;
+      text-decoration: none !important;
     }
 
     .continue-watching-text {

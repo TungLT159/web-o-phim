@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
-import SwiperCore, { Navigation, Pagination, Autoplay } from "swiper";
-import "swiper/swiper.min.css";
+import { Navigation, Pagination, Autoplay } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/bundle";
 import "./ranking-section.scss";
 import { fetchTMDBImages } from "../../utils/tmdbImageFetcher";
-
-// Install Swiper modules
-SwiperCore.use([Navigation, Pagination, Autoplay]);
 
 const RankingSection = ({ title, movies, icon, type }) => {
   const [moviesWithImages, setMoviesWithImages] = useState([]);

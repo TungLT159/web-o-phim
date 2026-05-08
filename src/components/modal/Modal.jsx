@@ -32,6 +32,7 @@ const Modal = props => {
             document.removeEventListener('keydown', handleEscape);
             document.removeEventListener('click', handleClickOutside);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [active]);
 
     const closeModal = () => {
