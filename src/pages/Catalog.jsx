@@ -17,6 +17,12 @@ const Catalog = () => {
   const { category, keyword, type } = useParams();
   const location = useLocation();
   const [title, setTitle] = useState("Danh sách phim");
+  
+  useEffect(() => {
+    // Scroll to top when component mounts or route changes
+    window.scrollTo(0, 0);
+  }, [category, keyword, location.pathname]);
+
   useEffect(() => {
     // const query = new URLSearchParams(location.search);
     // console.log(query);
