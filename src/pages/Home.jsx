@@ -25,7 +25,6 @@ export default function Home() {
         );
 
         const movies = newMoviesResponse.data?.items || [];
-        console.log("Movies data sample:", movies[0]); // Debug: xem cấu trúc data
 
         // Sort by TMDB rating
         const sortedByRating = [...movies]

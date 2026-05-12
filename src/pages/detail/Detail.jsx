@@ -50,18 +50,6 @@ const Detail = () => {
   const countdownIntervalRef = useRef(null);
   const hlsRef = useRef(null);
 
-  // ✅ Toggle auto-play setting
-  const handleToggleAutoPlay = useCallback(() => {
-    const newValue = !autoPlayEnabled;
-    setAutoPlayEnabled(newValue);
-    localStorage.setItem("autoPlayEnabled", JSON.stringify(newValue));
-
-    // Nếu tắt auto-play, clear timers hiện tại
-    if (!newValue) {
-      clearAutoPlayTimers();
-    }
-  }, [autoPlayEnabled]);
-
   // ✅ Clear auto-play timers
   const clearAutoPlayTimers = useCallback(() => {
     if (autoPlayTimerRef.current) {
@@ -75,6 +63,18 @@ const Detail = () => {
     setAutoPlayCountdown(null);
     setShowAutoPlayNotice(false);
   }, []);
+
+  // ✅ Toggle auto-play setting
+  const handleToggleAutoPlay = useCallback(() => {
+    const newValue = !autoPlayEnabled;
+    setAutoPlayEnabled(newValue);
+    localStorage.setItem("autoPlayEnabled", JSON.stringify(newValue));
+
+    // Nếu tắt auto-play, clear timers hiện tại
+    if (!newValue) {
+      clearAutoPlayTimers();
+    }
+  }, [autoPlayEnabled, clearAutoPlayTimers]);
 
   // ✅ Get current episode index
   const getCurrentEpisodeIndex = useCallback(() => {
@@ -437,7 +437,16 @@ const Detail = () => {
         saveProgressIntervalRef.current = null;
       }
     };
-  }, [currentEp, item, autoPlayEnabled, id, poster_url]);
+  }, [
+    currentEp,
+    item,
+    autoPlayEnabled,
+    id,
+    poster_url,
+    clearAutoPlayTimers,
+    getCurrentEpisodeIndex,
+    handleNextEpisode,
+  ]);
 
   // ✅ Keyboard shortcuts
   useEffect(() => {
@@ -469,7 +478,14 @@ const Detail = () => {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [currentEp, item, showAutoPlayNotice]);
+  }, [
+    currentEp,
+    item,
+    showAutoPlayNotice,
+    handleCancelAutoPlay,
+    handleNextEpisode,
+    handlePrevEpisode,
+  ]);
 
   // Get absolute image URL for social sharing
   const getAbsoluteImageUrl = useCallback((imageUrl) => {

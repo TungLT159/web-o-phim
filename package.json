@@ -16,7 +16,7 @@
     "react-helmet": "^6.1.0",
     "react-router-dom": "^6.30.0",
     "react-scripts": "^5.0.1",
-    "sass": "^1.99.0",
+    "sass": "1.69.5",
     "swiper": "^11.1.15",
     "web-vitals": "^5.2.0"
   },

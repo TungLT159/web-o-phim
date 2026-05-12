@@ -113,6 +113,8 @@ export const getTMDBProfileImage = (profilePath) => {
  * @returns {object} {posterUrl, backdropUrl, overview, loading, error}
  */
 export const useTMDBImages = (tmdbInfo) => {
+  const tmdbId = tmdbInfo?.id;
+  const tmdbType = tmdbInfo?.type;
   const [state, setState] = useState({
     posterUrl: FALLBACK_POSTER,
     backdropUrl: "",
@@ -125,7 +127,7 @@ export const useTMDBImages = (tmdbInfo) => {
     let isMounted = true;
 
     const loadImages = async () => {
-      if (!tmdbInfo?.id) {
+      if (!tmdbId) {
         setState({
           posterUrl: FALLBACK_POSTER,
           backdropUrl: "",
@@ -137,7 +139,7 @@ export const useTMDBImages = (tmdbInfo) => {
       }
 
       try {
-        const result = await fetchTMDBImages(tmdbInfo);
+        const result = await fetchTMDBImages({ id: tmdbId, type: tmdbType });
         if (isMounted) {
           setState({
             ...result,
@@ -163,7 +165,7 @@ export const useTMDBImages = (tmdbInfo) => {
     return () => {
       isMounted = false;
     };
-  }, [tmdbInfo?.id, tmdbInfo?.type]);
+  }, [tmdbId, tmdbType]);
 
   return state;
 };

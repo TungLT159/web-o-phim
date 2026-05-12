@@ -20,26 +20,26 @@ const Footer = () => {
               Trải nghiệm xem phim mượt mà, không quảng cáo với Ổ Phim.
             </p>
             <div className="footer__social">
-              <a
-                href="#"
+              <button
+                type="button"
                 className="social-link facebook"
                 aria-label="Facebook"
               >
                 <i className="bx bxl-facebook"></i>
-              </a>
-              <a href="#" className="social-link twitter" aria-label="Twitter">
+              </button>
+              <button type="button" className="social-link twitter" aria-label="Twitter">
                 <i className="bx bxl-twitter"></i>
-              </a>
-              <a
-                href="#"
+              </button>
+              <button
+                type="button"
                 className="social-link instagram"
                 aria-label="Instagram"
               >
                 <i className="bx bxl-instagram"></i>
-              </a>
-              <a href="#" className="social-link youtube" aria-label="YouTube">
+              </button>
+              <button type="button" className="social-link youtube" aria-label="YouTube">
                 <i className="bx bxl-youtube"></i>
-              </a>
+              </button>
             </div>
           </div>
 
