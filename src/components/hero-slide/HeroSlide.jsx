@@ -107,13 +107,13 @@ const HeroSlideItem = (props) => {
 
       // Thử lấy trailer tiếng Việt trước
       let response = await axiosClient.get(
-        `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=vi-VN`,
+        `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=${process.env.REACT_APP_TMDB_API_KEY}&language=vi-VN`,
       );
 
       // Nếu không có trailer tiếng Việt, lấy tiếng Anh
       if (!response.results || response.results.length === 0) {
         response = await axiosClient.get(
-          `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=en-US`,
+          `https://api.themoviedb.org/3/${type}/${item.tmdb.id}/videos?api_key=${process.env.REACT_APP_TMDB_API_KEY}&language=en-US`,
         );
       }
 

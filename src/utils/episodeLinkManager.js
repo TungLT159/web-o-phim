@@ -27,37 +27,14 @@ export const getEpisodeLink = async (movieId, episodeName) => {
       return linkCache.get(cacheKey);
     }
     
-    // ✅ Fetch toàn bộ episodes từ API (đã được ẩn link)
-    // Sau đó tìm episode cụ thể và lấy link
-    const response = await tmdbApi.detail('movie', movieId);
-    
-    if (!response.data?.item?.episodes?.[0]?.server_data) {
-      console.warn(`No episodes found for movie ${movieId}`);
-      return { link_m3u8: null, link_embed: null };
-    }
-    
-    const episodes = response.data.item.episodes[0].server_data;
-    const episode = episodes.find(ep => ep.name === episodeName);
-    
-    if (!episode) {
-      console.warn(`Episode ${episodeName} not found for movie ${movieId}`);
-      return { link_m3u8: null, link_embed: null };
-    }
-    
-    // ✅ Lưu vào cache
-    const links = {
-      link_m3u8: episode.link_m3u8 || null,
-      link_embed: episode.link_embed || null,
-      slug: episode.slug,
-      name: episode.name,
-    };
+    const links = await tmdbApi.episode(movieId, episodeName);
     
     linkCache.set(cacheKey, links);
     return links;
     
   } catch (error) {
     console.error(`Error fetching episode link for ${movieId}/${episodeName}:`, error);
-    return { link_m3u8: null, link_embed: null };
+    return { playlistUrl: null };
   }
 };
 

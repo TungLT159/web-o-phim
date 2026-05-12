@@ -8,7 +8,6 @@ import React, {
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Hls from "hls.js";
 import tmdbApi from "../../api/tmdbApi";
-import axiosClient from "../../api/axiosClient";
 import { fetchTMDBImages } from "../../utils/tmdbImageFetcher";
 import {
   saveWatchProgress,
@@ -17,7 +16,6 @@ import {
   formatTime,
 } from "../../utils/watchHistoryManager";
 import { getEpisodeLink } from "../../utils/episodeLinkManager";
-import { decryptFilmData, encryptFilmData } from "../../utils/secureFilmDataManager";
 import "./detail.scss";
 import { Helmet } from "react-helmet";
 import SimilarMovies from "../../components/similar-movies/SimilarMovies";
@@ -33,6 +31,7 @@ const Detail = () => {
   const [backdrop_url, setBackdropUrl] = useState("");
   const [overview, setOverview] = useState("");
   const [currentEp, setCurrentEp] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [autoPlayCountdown, setAutoPlayCountdown] = useState(null);
   const [showAutoPlayNotice, setShowAutoPlayNotice] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(() => {
@@ -130,53 +129,44 @@ const Detail = () => {
 
   useEffect(() => {
     const getDetail = async () => {
-      const response = await tmdbApi.detail(category, id, { params: {} });
-      let data = response.data.item;
+      try {
+        setLoadError(null);
+        const response = await tmdbApi.detail(category, id, { params: {} });
+        const data = response.data.item;
       
-      // ✅ Mã hóa dữ liệu phim nhạy cảm
-      data = encryptFilmData(data);
-      
-      // ✅ Ẩn/loại bỏ link_m3u8 và link_embed khỏi episodes
-      // Link sẽ được fetch riêng biệt khi người dùng click play
-      if (data.episodes && data.episodes[0]?.server_data) {
-        data.episodes = data.episodes.map(server => ({
-          ...server,
-          server_data: server.server_data.map(ep => {
-            const { link_m3u8, link_embed, ...safeEp } = ep;
-            // ❌ KHÔNG gửi link_m3u8 và link_embed về client
-            // Chúng sẽ được lấy on-demand thông qua getEpisodeLink()
-            return safeEp;
-          })
-        }));
-      }
-      
-      setItem(data);
+        setItem(data);
 
       // Nếu không phải Trailer → set tập từ URL hoặc tập đầu
-      if (
-        data.episode_current !== "Trailer" &&
-        data.episodes?.[0]?.server_data
-      ) {
-        let defaultEp = data.episodes[0].server_data[0];
-        if (epFromUrl) {
-          const found = data.episodes[0].server_data.find(
-            (e) => e.name === epFromUrl,
-          );
-          if (found) defaultEp = found;
-        }
-        setCurrentEp(defaultEp);
-
-        // Kiểm tra xem có watch progress không
-        const progress = getWatchProgress(id, defaultEp.name);
         if (
-          progress &&
-          shouldShowContinueWatching(progress.currentTime, progress.duration)
+          data.episode_current !== "Trailer" &&
+          data.episodes?.[0]?.server_data
         ) {
-          setSavedProgress(progress);
-          setShowContinueWatching(true);
+          let defaultEp = data.episodes[0].server_data[0];
+          if (epFromUrl) {
+            const found = data.episodes[0].server_data.find(
+              (e) => e.name === epFromUrl,
+            );
+            if (found) defaultEp = found;
+          }
+          setCurrentEp(defaultEp);
+
+          // Kiểm tra xem có watch progress không
+          const progress = getWatchProgress(id, defaultEp.name);
+          if (
+            progress &&
+            shouldShowContinueWatching(progress.currentTime, progress.duration)
+          ) {
+            setSavedProgress(progress);
+            setShowContinueWatching(true);
+          }
         }
+        window.scrollTo(0, 0);
+      } catch (error) {
+        console.error("Error loading movie detail:", error);
+        setItem(null);
+        setCurrentEp(null);
+        setLoadError("Không tải được dữ liệu phim. Vui lòng kiểm tra lại đường dẫn hoặc thử lại sau.");
       }
-      window.scrollTo(0, 0);
     };
     getDetail();
   }, [category, id, epFromUrl]);
@@ -301,18 +291,20 @@ const Detail = () => {
           hlsRef.current.destroy();
         }
 
-        if (!episodeLink.link_m3u8 && !episodeLink.link_embed) {
+        const sourceUrl = episodeLink.playlistUrl || episodeLink.link_m3u8;
+
+        if (!sourceUrl && !episodeLink.link_embed) {
           console.error('No video link available');
           return;
         }
 
-        if (episodeLink.link_m3u8 && Hls.isSupported()) {
+        if (sourceUrl && Hls.isSupported()) {
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: true,
           });
 
-          hls.loadSource(episodeLink.link_m3u8);
+          hls.loadSource(sourceUrl);
           hls.attachMedia(video);
 
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -322,22 +314,17 @@ const Detail = () => {
           hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) {
               console.error("HLS Error:", data);
-              // Fallback to link_embed if available
-              if (episodeLink.link_embed) {
-                video.src = episodeLink.link_embed;
-              }
             }
           });
 
           hlsRef.current = hls;
-        } else if (episodeLink.link_m3u8 && video.canPlayType("application/vnd.apple.mpegurl")) {
+        } else if (sourceUrl && video.canPlayType("application/vnd.apple.mpegurl")) {
           // Native HLS support (Safari)
-          video.src = episodeLink.link_m3u8;
+          video.src = sourceUrl;
           video.addEventListener("loadedmetadata", () => {
             video.play().catch((err) => console.log("Auto-play prevented:", err));
           });
         } else if (episodeLink.link_embed) {
-          // Fallback to embed link
           video.src = episodeLink.link_embed;
           video.addEventListener("loadedmetadata", () => {
             video.play().catch((err) => console.log("Auto-play prevented:", err));
@@ -518,6 +505,11 @@ const Detail = () => {
 
   return (
     <>
+      {loadError && (
+        <div className="container" style={{ padding: "120px 0 60px" }}>
+          <h2>{loadError}</h2>
+        </div>
+      )}
       {item && (
         <>
           <Helmet>

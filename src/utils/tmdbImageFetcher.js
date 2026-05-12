@@ -7,7 +7,7 @@ import apiConfig from "../api/apiConfig";
  * Hàm chung để lấy hình ảnh từ TMDB API
  */
 
-const TMDB_API_KEY = "2724d844032ce6b2526dad06a0936a6e";
+const TMDB_API_KEY = process.env.REACT_APP_TMDB_API_KEY;
 const FALLBACK_POSTER = "/poster-mau.png";
 
 /**

@@ -1,5 +1,5 @@
 import axiosClient from "./axiosClient";
-import apiConfig from "./apiConfig";
+import axios from "axios";
 
 export const category = {
   movie: "movie",
@@ -49,8 +49,31 @@ const tmdbApi = {
     return axiosClient.get(url, { params }); // ✅ bọc vào { params }
   },
   detail: (cate, id, params) => {
-    const url = "/v1/api/phim/" + id;
-    return axiosClient.get(url, params);
+    const url = "/api/phim/" + id;
+    return axios.get(url, params)
+      .then((response) => response.data)
+      .catch(() => axiosClient.get("/v1/api/phim/" + id, params));
+  },
+  episode: (id, episodeName) => {
+    const url = "/api/phim/" + id + "/episode";
+    return axios
+      .get(url, { params: { name: episodeName } })
+      .then((response) => response.data)
+      .catch(async () => {
+        const response = await axiosClient.get("/v1/api/phim/" + id);
+        const episodes = response.data?.item?.episodes?.[0]?.server_data || [];
+        const episode = episodes.find(
+          (ep) => ep.name === episodeName || ep.slug === episodeName,
+        );
+
+        return {
+          name: episode?.name,
+          slug: episode?.slug,
+          link_m3u8: episode?.link_m3u8 || null,
+          link_embed: episode?.link_embed || null,
+          playlistUrl: null,
+        };
+      });
   },
   credits: (cate, id) => {
     const url = `/v1/api/phim/${id}/peoples`;

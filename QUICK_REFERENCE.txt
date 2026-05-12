@@ -1,0 +1,134 @@
+﻿QUICK REFERENCE CARD - WEB-O-PHIM EPISODES LOADING
+
+═══════════════════════════════════════════════════════════════════════════════
+
+KEY FILES
+─────────
+
+Detail.jsx          → E:\website-ophim\web-o-phim\src\pages\detail\Detail.jsx
+EpisodeScroll.jsx   → E:\website-ophim\web-o-phim\src\components\episode-scroll\EpisodeScroll.jsx
+tmdbApi.js          → E:\website-ophim\web-o-phim\src\api\tmdbApi.js
+watchHistory.js     → E:\website-ophim\web-o-phim\src\utils\watchHistoryManager.js
+
+═══════════════════════════════════════════════════════════════════════════════
+
+MAIN FUNCTIONS
+──────────────
+
+getDetail()                 → Loads movie + episodes (Detail.jsx:130)
+handleSelectEpisode(ep)     → Switches to new episode
+handleNextEpisode()         → Goes to next episode
+handlePrevEpisode()         → Goes to previous episode
+getCurrentEpisodeIndex()    → Gets current episode position
+
+═══════════════════════════════════════════════════════════════════════════════
+
+API CALL
+────────
+
+const response = await tmdbApi.detail(category, id, {});
+const episodes = response.data.item.episodes[0].server_data;
+
+Each episode: { name, slug, link_m3u8, link_embed }
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STATE VARIABLES
+───────────────
+
+item                → { episodes: [{server_data: [...]}], ... }
+currentEp           → { name: "1", link_m3u8: "...", ... }
+autoPlayEnabled     → true/false
+showContinueWatching → true/false
+savedProgress       → { currentTime, duration, ... }
+
+═══════════════════════════════════════════════════════════════════════════════
+
+EPISODE ACCESS
+──────────────
+
+All episodes:           item.episodes[0].server_data
+Current index:          getCurrentEpisodeIndex()
+Total count:            item.episodes[0].server_data.length
+Episode name:           currentEp.name ("1", "2", "3"...)
+Video URL (HLS):        currentEp.link_m3u8
+Video URL (Embed):      currentEp.link_embed
+
+═══════════════════════════════════════════════════════════════════════════════
+
+URLS
+────
+
+Detail page:        /movie/{movieSlug}
+With episode:       /movie/{movieSlug}?ep=2
+By genre:           /the-loai/{genreSlug}
+By country:         /quoc-gia/{countrySlug}
+Search:             /search/{keyword}
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WATCH PROGRESS
+──────────────
+
+Save:   saveWatchProgress(movieId, episodeName, currentTime, duration, movieInfo)
+Get:    getWatchProgress(movieId, episodeName)
+Clear:  clearWatchHistory() or removeWatchProgress(movieId, episodeName)
+Check:  shouldShowContinueWatching(currentTime, duration)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+KEYBOARD IN EPISODESCROLL
+─────────────────────────
+
+Arrow Right  → Next episode       Home    → First episode
+Arrow Left   → Previous episode   End     → Last episode
+Arrow Down   → 5 forward          Enter   → Select episode
+Arrow Up     → 5 backward         Space   → Select episode
+
+═══════════════════════════════════════════════════════════════════════════════
+
+COMPONENT RENDERING
+───────────────────
+
+<EpisodeScroll
+  episodes={item.episodes[0].server_data}
+  currentEpisode={currentEp}
+  onSelectEpisode={handleSelectEpisode}
+/>
+
+═══════════════════════════════════════════════════════════════════════════════
+
+VIDEO PLAYBACK
+──────────────
+
+Priority 1: link_m3u8 via HLS.js (modern streaming)
+Priority 2: link_embed (iframe fallback)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+COMMON PATTERNS
+───────────────
+
+Load Movie:
+  const response = await tmdbApi.detail(category, id);
+  setItem(response.data.item);
+
+Get Episodes:
+  const eps = item.episodes[0].server_data;
+
+Switch Episode:
+  handleSelectEpisode(episodeObject);
+
+═══════════════════════════════════════════════════════════════════════════════
+
+DOCUMENTATION FILES
+───────────────────
+
+1. FILM_EPISODES_ARCHITECTURE.md  → Full architecture guide
+2. FILE_REFERENCE_GUIDE.md        → File-by-file reference
+3. CODE_EXAMPLES.md               → 15+ working examples
+4. SEARCH_RESULTS_SUMMARY.txt     → Quick summary
+5. FINAL_REPORT.txt               → Detailed final report
+6. QUICK_REFERENCE.txt            → This file
+
+═══════════════════════════════════════════════════════════════════════════════

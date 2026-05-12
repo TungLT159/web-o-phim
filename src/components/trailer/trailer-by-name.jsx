@@ -8,7 +8,7 @@ function TrailerByName({ movieName }) {
       try {
         // 1. Tìm phim theo tên
         const searchRes = await fetch(
-          `https://api.themoviedb.org/3/search/movie?api_key=2724d844032ce6b2526dad06a0936a6e&query=${encodeURIComponent(
+          `https://api.themoviedb.org/3/search/movie?api_key=${process.env.REACT_APP_TMDB_API_KEY}&query=${encodeURIComponent(
             movieName
           )}&language=en-US`
         );
@@ -21,7 +21,7 @@ function TrailerByName({ movieName }) {
 
         // 2. Lấy video (trailer) của phim đó
         const videosRes = await fetch(
-          `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=2724d844032ce6b2526dad06a0936a6e&language=en-US`
+          `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${process.env.REACT_APP_TMDB_API_KEY}&language=en-US`
         );
         const videosData = await videosRes.json();
 
