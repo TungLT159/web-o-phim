@@ -16,6 +16,7 @@ import {
   shouldShowContinueWatching,
   formatTime,
 } from "../../utils/watchHistoryManager";
+import { getEpisodeLink } from "../../utils/episodeLinkManager";
 import "./detail.scss";
 import { Helmet } from "react-helmet";
 import SimilarMovies from "../../components/similar-movies/SimilarMovies";
@@ -129,7 +130,22 @@ const Detail = () => {
   useEffect(() => {
     const getDetail = async () => {
       const response = await tmdbApi.detail(category, id, { params: {} });
-      const data = response.data.item;
+      let data = response.data.item;
+      
+      // ✅ Ẩn/loại bỏ link_m3u8 và link_embed khỏi episodes
+      // Link sẽ được fetch riêng biệt khi người dùng click play
+      if (data.episodes && data.episodes[0]?.server_data) {
+        data.episodes = data.episodes.map(server => ({
+          ...server,
+          server_data: server.server_data.map(ep => {
+            const { link_m3u8, link_embed, ...safeEp } = ep;
+            // ❌ KHÔNG gửi link_m3u8 và link_embed về client
+            // Chúng sẽ được lấy on-demand thông qua getEpisodeLink()
+            return safeEp;
+          })
+        }));
+      }
+      
       setItem(data);
 
       // Nếu không phải Trailer → set tập từ URL hoặc tập đầu
@@ -266,47 +282,69 @@ const Detail = () => {
     }
   }, []);
 
-  // ✅ Initialize HLS player for m3u8 videos
+  // ✅ Initialize HLS player for m3u8 videos - Fetch link on demand
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !currentEp?.link_m3u8) return;
+    if (!video || !currentEp?.slug) return;
 
-    // Cleanup previous HLS instance
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-    }
-
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-      });
-
-      hls.loadSource(currentEp.link_m3u8);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch((err) => console.log("Auto-play prevented:", err));
-      });
-
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          console.error("HLS Error:", data);
-          // Fallback to link_embed if available
-          if (currentEp.link_embed) {
-            video.src = currentEp.link_embed;
-          }
+    // Fetch episode link on demand
+    const loadVideoSource = async () => {
+      try {
+        const episodeLink = await getEpisodeLink(id, currentEp.name);
+        
+        // Cleanup previous HLS instance
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
         }
-      });
 
-      hlsRef.current = hls;
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native HLS support (Safari)
-      video.src = currentEp.link_m3u8;
-      video.addEventListener("loadedmetadata", () => {
-        video.play().catch((err) => console.log("Auto-play prevented:", err));
-      });
-    }
+        if (!episodeLink.link_m3u8 && !episodeLink.link_embed) {
+          console.error('No video link available');
+          return;
+        }
+
+        if (episodeLink.link_m3u8 && Hls.isSupported()) {
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+          });
+
+          hls.loadSource(episodeLink.link_m3u8);
+          hls.attachMedia(video);
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch((err) => console.log("Auto-play prevented:", err));
+          });
+
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+              console.error("HLS Error:", data);
+              // Fallback to link_embed if available
+              if (episodeLink.link_embed) {
+                video.src = episodeLink.link_embed;
+              }
+            }
+          });
+
+          hlsRef.current = hls;
+        } else if (episodeLink.link_m3u8 && video.canPlayType("application/vnd.apple.mpegurl")) {
+          // Native HLS support (Safari)
+          video.src = episodeLink.link_m3u8;
+          video.addEventListener("loadedmetadata", () => {
+            video.play().catch((err) => console.log("Auto-play prevented:", err));
+          });
+        } else if (episodeLink.link_embed) {
+          // Fallback to embed link
+          video.src = episodeLink.link_embed;
+          video.addEventListener("loadedmetadata", () => {
+            video.play().catch((err) => console.log("Auto-play prevented:", err));
+          });
+        }
+      } catch (error) {
+        console.error('Error loading video source:', error);
+      }
+    };
+
+    loadVideoSource();
 
     return () => {
       if (hlsRef.current) {
@@ -314,7 +352,7 @@ const Detail = () => {
         hlsRef.current = null;
       }
     };
-  }, [currentEp]);
+  }, [currentEp, id]);
 
   // ✅ Auto-play next episode when video is near end
   useEffect(() => {
