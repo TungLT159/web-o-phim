@@ -17,6 +17,7 @@ import {
   formatTime,
 } from "../../utils/watchHistoryManager";
 import { getEpisodeLink } from "../../utils/episodeLinkManager";
+import { decryptFilmData, encryptFilmData } from "../../utils/secureFilmDataManager";
 import "./detail.scss";
 import { Helmet } from "react-helmet";
 import SimilarMovies from "../../components/similar-movies/SimilarMovies";
@@ -131,6 +132,9 @@ const Detail = () => {
     const getDetail = async () => {
       const response = await tmdbApi.detail(category, id, { params: {} });
       let data = response.data.item;
+      
+      // ✅ Mã hóa dữ liệu phim nhạy cảm
+      data = encryptFilmData(data);
       
       // ✅ Ẩn/loại bỏ link_m3u8 và link_embed khỏi episodes
       // Link sẽ được fetch riêng biệt khi người dùng click play
