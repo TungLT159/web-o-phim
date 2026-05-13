@@ -19,6 +19,8 @@ const formatVideoTime = (value) => {
 const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
   const playerRef = useRef(null);
   const hideControlsTimerRef = useRef(null);
+  const lastTapRef = useRef({ side: null, time: 0 });
+  const seekFeedbackTimerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -28,6 +30,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
   const [hasError, setHasError] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [seekFeedback, setSeekFeedback] = useState(null);
 
   const getVideo = useCallback(() => videoRef?.current, [videoRef]);
 
@@ -75,6 +78,46 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
       revealControls();
     },
     [getVideo, revealControls],
+  );
+
+  const showSeekFeedback = useCallback((side, label) => {
+    if (seekFeedbackTimerRef.current) {
+      clearTimeout(seekFeedbackTimerRef.current);
+    }
+
+    setSeekFeedback({ side, label });
+    seekFeedbackTimerRef.current = setTimeout(() => {
+      setSeekFeedback(null);
+      seekFeedbackTimerRef.current = null;
+    }, 650);
+  }, []);
+
+  const handleSurfaceTap = useCallback(
+    (event) => {
+      if (!playerRef.current) return;
+      if (event.target.closest?.(".custom-video-player__chrome")) return;
+
+      const point = event.touches?.[0] || event.changedTouches?.[0] || event;
+      if (typeof point.clientX !== "number") return;
+
+      const bounds = playerRef.current.getBoundingClientRect();
+      const side = point.clientX - bounds.left < bounds.width / 2 ? "left" : "right";
+      const now = Date.now();
+      const isDoubleTap =
+        lastTapRef.current.side === side && now - lastTapRef.current.time <= 300;
+
+      if (isDoubleTap) {
+        const seconds = side === "left" ? -10 : 10;
+        seekBy(seconds);
+        showSeekFeedback(side, seconds > 0 ? "+10s" : "-10s");
+        lastTapRef.current = { side: null, time: 0 };
+        return;
+      }
+
+      lastTapRef.current = { side, time: now };
+      revealControls();
+    },
+    [revealControls, seekBy, showSeekFeedback],
   );
 
   const handleSeek = useCallback(
@@ -171,6 +214,9 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
       video.removeEventListener("error", handleError);
       video.removeEventListener("volumechange", syncVolume);
       clearHideControlsTimer();
+      if (seekFeedbackTimerRef.current) {
+        clearTimeout(seekFeedbackTimerRef.current);
+      }
     };
   }, [clearHideControlsTimer, getVideo, revealControls]);
 
@@ -238,7 +284,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
       }`}
       onMouseMove={revealControls}
       onMouseLeave={() => isPlaying && setShowControls(false)}
-      onTouchStart={revealControls}
+      onTouchStart={handleSurfaceTap}
     >
       <video ref={videoRef} autoPlay playsInline controlsList="nodownload">
         Trình duyệt của bạn không hỗ trợ video HTML5.
@@ -250,6 +296,14 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
         onClick={togglePlay}
         aria-label={isPlaying ? "Tạm dừng" : "Phát"}
       />
+
+      {seekFeedback && (
+        <div
+          className={`custom-video-player__seek-feedback custom-video-player__seek-feedback--${seekFeedback.side}`}
+        >
+          <span>{seekFeedback.label}</span>
+        </div>
+      )}
 
       {isLoading && !hasError && (
         <div className="custom-video-player__state custom-video-player__state--loading">

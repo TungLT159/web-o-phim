@@ -39,6 +39,19 @@ const renderPlayer = () => {
   return { ...view, video };
 };
 
+const mockPlayerBounds = (container) => {
+  const player = container.querySelector(".custom-video-player");
+  player.getBoundingClientRect = jest.fn(() => ({
+    left: 0,
+    right: 200,
+    top: 0,
+    bottom: 100,
+    width: 200,
+    height: 100,
+  }));
+  return player;
+};
+
 test("renders title, episode, and custom controls", () => {
   renderPlayer();
 
@@ -95,4 +108,28 @@ test("supports keyboard seek and mute shortcuts", () => {
 
   fireEvent.keyDown(window, { key: "M" });
   expect(video.muted).toBe(true);
+});
+
+test("double tap on left half seeks backward 10 seconds", () => {
+  const { container, video } = renderPlayer();
+  const player = mockPlayerBounds(container);
+  video.currentTime = 40;
+
+  fireEvent.touchStart(player, { touches: [{ clientX: 40 }] });
+  fireEvent.touchStart(player, { touches: [{ clientX: 40 }] });
+
+  expect(video.currentTime).toBe(30);
+  expect(screen.getByText("-10s")).toBeInTheDocument();
+});
+
+test("double tap on right half seeks forward 10 seconds", () => {
+  const { container, video } = renderPlayer();
+  const player = mockPlayerBounds(container);
+  video.currentTime = 40;
+
+  fireEvent.touchStart(player, { touches: [{ clientX: 160 }] });
+  fireEvent.touchStart(player, { touches: [{ clientX: 160 }] });
+
+  expect(video.currentTime).toBe(50);
+  expect(screen.getByText("+10s")).toBeInTheDocument();
 });
