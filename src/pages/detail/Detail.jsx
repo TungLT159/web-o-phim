@@ -20,6 +20,7 @@ import "./detail.scss";
 import { Helmet } from "react-helmet";
 import SimilarMovies from "../../components/similar-movies/SimilarMovies";
 import EpisodeScroll from "../../components/episode-scroll/EpisodeScroll";
+import CustomVideoPlayer from "../../components/video-player/CustomVideoPlayer";
 
 const Detail = () => {
   const { category, id } = useParams();
@@ -456,12 +457,15 @@ const Detail = () => {
         return;
       }
 
+      // Plain arrow keys are owned by the video player for 10-second seeking.
       switch (e.key) {
         case "ArrowLeft":
+          if (!e.altKey) break;
           e.preventDefault();
           handlePrevEpisode();
           break;
         case "ArrowRight":
+          if (!e.altKey) break;
           e.preventDefault();
           handleNextEpisode();
           break;
@@ -660,15 +664,11 @@ const Detail = () => {
                         allowFullScreen
                       ></iframe>
                     ) : (
-                      <video
-                        ref={videoRef}
-                        controls
-                        autoPlay
-                        controlsList="nodownload"
-                        style={{ width: "100%", height: "100%" }}
-                      >
-                        Trình duyệt của bạn không hỗ trợ video HTML5.
-                      </video>
+                      <CustomVideoPlayer
+                        videoRef={videoRef}
+                        title={item.title || item.name}
+                        episodeName={currentEp?.name}
+                      />
                     )}
                   </div>
                 </div>
