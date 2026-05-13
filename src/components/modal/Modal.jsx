@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 
 import './modal.scss';
@@ -45,10 +46,11 @@ const Modal = props => {
         }
     };
 
-    return (
+    return createPortal(
         <div ref={modalRef} id={props.id} className={`modal ${active ? 'active' : ''}`}>
             {props.children}
-        </div>
+        </div>,
+        document.body,
     );
 }
 
@@ -60,15 +62,24 @@ Modal.propTypes = {
 export const ModalContent = props => {
 
     const contentRef = useRef(null);
+    const closeClassName = [
+        'modal__content__close',
+        props.closeButtonClassName,
+    ].filter(Boolean).join(' ');
+    const contentClassName = [
+        'modal__content',
+        props.closeButtonClassName?.includes('modal__content__close--floating') && 'modal__content--floating-close',
+    ].filter(Boolean).join(' ');
+
     const closeModal = () => {
         contentRef.current.parentNode.classList.remove('active');
         if (props.onClose) props.onClose();
     }
 
     return (
-        <div ref={contentRef} className="modal__content">
+        <div ref={contentRef} className={contentClassName}>
             {props.children}
-            <div className="modal__content__close" onClick={closeModal}>
+            <div className={closeClassName} onClick={closeModal} aria-label="Đóng modal" role="button" tabIndex="0">
                 <i className="bx bx-x"></i>
             </div>
         </div>
@@ -76,7 +87,8 @@ export const ModalContent = props => {
 }
 
 ModalContent.propTypes = {
-    onClose: PropTypes.func
+    onClose: PropTypes.func,
+    closeButtonClassName: PropTypes.string
 }
 
 export default Modal

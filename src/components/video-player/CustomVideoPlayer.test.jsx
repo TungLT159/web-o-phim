@@ -3,12 +3,27 @@ import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import CustomVideoPlayer from "./CustomVideoPlayer";
 
+const originalMatchMedia = window.matchMedia;
+
+afterEach(() => {
+  window.matchMedia = originalMatchMedia;
+});
+
 const setMediaProperty = (element, property, value) => {
   Object.defineProperty(element, property, {
     configurable: true,
     value,
     writable: true,
   });
+};
+
+const mockCoarsePointer = (matches) => {
+  window.matchMedia = jest.fn().mockImplementation((query) => ({
+    matches: query.includes("pointer: coarse") ? matches : false,
+    media: query,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  }));
 };
 
 const renderPlayer = () => {
@@ -39,6 +54,17 @@ const renderPlayer = () => {
   return { ...view, video };
 };
 
+const renderPlayerWithEpisodeName = (episodeName) => {
+  const videoRef = React.createRef();
+  return render(
+    <CustomVideoPlayer
+      videoRef={videoRef}
+      title="Test Movie"
+      episodeName={episodeName}
+    />,
+  );
+};
+
 const mockPlayerBounds = (container) => {
   const player = container.querySelector(".custom-video-player");
   player.getBoundingClientRect = jest.fn(() => ({
@@ -53,18 +79,95 @@ const mockPlayerBounds = (container) => {
 };
 
 test("renders title, episode, and custom controls", () => {
-  renderPlayer();
+  const { container } = renderPlayer();
 
   expect(screen.getByText("Test Movie")).toBeInTheDocument();
   expect(screen.getByText("Tập 1")).toBeInTheDocument();
   expect(screen.getAllByLabelText("Phát").length).toBeGreaterThan(0);
   expect(screen.getByLabelText("Tua video")).toBeInTheDocument();
+  expect(container.querySelector(".custom-video-player__controls")).toHaveClass(
+    "custom-video-player__controls--primary",
+  );
+  expect(container.querySelector(".custom-video-player__chrome")).toHaveClass(
+    "custom-video-player__chrome--pass-through",
+  );
+  expect(container.querySelector(".custom-video-player__meta")).toHaveClass(
+    "custom-video-player__meta--pass-through",
+  );
+});
+
+test("uses native video controls on coarse pointer devices", () => {
+  mockCoarsePointer(true);
+
+  const { container, video } = renderPlayer();
+
+  expect(video).toHaveAttribute("controls");
+  expect(video.controls).toBe(true);
+  expect(container.querySelector(".custom-video-player__chrome")).not.toBeInTheDocument();
+  expect(container.querySelector(".custom-video-player__hit-area")).not.toBeInTheDocument();
+});
+
+test("does not duplicate episode prefix in player metadata", () => {
+  renderPlayerWithEpisodeName("Tập 1");
+
+  expect(screen.getByText("Tập 1")).toBeInTheDocument();
+  expect(screen.queryByText("Tập Tập 1")).not.toBeInTheDocument();
 });
 
 test("plays video from the center play button", () => {
   const { video } = renderPlayer();
 
   fireEvent.click(screen.getByLabelText("Phát video"));
+
+  expect(video.play).toHaveBeenCalledTimes(1);
+});
+
+test("center play button remains reliable after a prior touch", () => {
+  const { container, video } = renderPlayer();
+  const player = mockPlayerBounds(container);
+
+  fireEvent.touchStart(player, { touches: [{ clientX: 100 }] });
+  fireEvent.click(screen.getByLabelText("Phát video"));
+
+  expect(video.play).toHaveBeenCalledTimes(1);
+});
+
+test("desktop fullscreen prefers the custom player container", () => {
+  const { container, video } = renderPlayer();
+  const player = container.querySelector(".custom-video-player");
+  player.requestFullscreen = jest.fn();
+  video.webkitEnterFullscreen = jest.fn();
+
+  fireEvent.click(screen.getByLabelText("Toàn màn hình"));
+
+  expect(player.requestFullscreen).toHaveBeenCalledTimes(1);
+  expect(video.webkitEnterFullscreen).not.toHaveBeenCalled();
+});
+
+test("desktop surface click toggles playback", () => {
+  const { video } = renderPlayer();
+
+  fireEvent.click(screen.getAllByLabelText("Phát")[0]);
+
+  expect(video.play).toHaveBeenCalledTimes(1);
+});
+
+test("touch surface tap ignores the following synthetic click", () => {
+  const { container, video } = renderPlayer();
+  const player = mockPlayerBounds(container);
+
+  fireEvent.touchStart(player, { touches: [{ clientX: 100 }] });
+  fireEvent.click(screen.getAllByLabelText("Phát")[0]);
+
+  expect(video.play).not.toHaveBeenCalled();
+});
+
+test("control play button remains clickable after touch interaction", () => {
+  const { container, video } = renderPlayer();
+  const player = mockPlayerBounds(container);
+
+  fireEvent.touchStart(player, { touches: [{ clientX: 100 }] });
+  fireEvent.click(screen.getAllByLabelText("Phát")[1]);
 
   expect(video.play).toHaveBeenCalledTimes(1);
 });

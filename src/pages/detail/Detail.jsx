@@ -21,6 +21,7 @@ import { Helmet } from "react-helmet";
 import SimilarMovies from "../../components/similar-movies/SimilarMovies";
 import EpisodeScroll from "../../components/episode-scroll/EpisodeScroll";
 import CustomVideoPlayer from "../../components/video-player/CustomVideoPlayer";
+import { formatEpisodeDisplayName } from "../../utils/episodeDisplayName";
 
 const Detail = () => {
   const { category, id } = useParams();
@@ -50,6 +51,10 @@ const Detail = () => {
   const autoPlayTimerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
   const hlsRef = useRef(null);
+
+  const currentEpisodeDisplayName = currentEp
+    ? formatEpisodeDisplayName(currentEp.name)
+    : "";
 
   // ✅ Clear auto-play timers
   const clearAutoPlayTimers = useCallback(() => {
@@ -535,7 +540,7 @@ const Detail = () => {
           <Helmet>
             <title>
               {`${item.title || item.name} ${
-                currentEp ? `- Tập ${currentEp.name}` : ""
+                currentEp ? `- ${currentEpisodeDisplayName}` : ""
               } | Ổ Phim`}
             </title>
             <meta
@@ -560,7 +565,7 @@ const Detail = () => {
             <meta property="og:type" content="video.movie" />
             <meta
               property="og:title"
-              content={`${item.title || item.name} ${currentEp ? `- Tập ${currentEp.name}` : ""}`}
+              content={`${item.title || item.name} ${currentEp ? `- ${currentEpisodeDisplayName}` : ""}`}
             />
             <meta
               property="og:description"
@@ -596,7 +601,7 @@ const Detail = () => {
             <meta name="twitter:card" content="summary_large_image" />
             <meta
               name="twitter:title"
-              content={`${item.title || item.name} ${currentEp ? `- Tập ${currentEp.name}` : ""}`}
+              content={`${item.title || item.name} ${currentEp ? `- ${currentEpisodeDisplayName}` : ""}`}
             />
             <meta
               name="twitter:description"
@@ -638,7 +643,7 @@ const Detail = () => {
             <div className="movie-content__info">
               <h1 className="title">
                 {item.title || item.name}{" "}
-                {currentEp ? `- Tập ${currentEp.name}` : ""}
+                {currentEp ? `- ${currentEpisodeDisplayName}` : ""}
               </h1>
               <div className="genres">{genresList}</div>
               {/* ✅ Thêm các tag thông tin */}
@@ -705,7 +710,7 @@ const Detail = () => {
                       <div className="current-episode-info">
                         <span className="episode-label">Đang xem:</span>
                         <span className="episode-number">
-                          Tập {currentEp?.name}
+                          {currentEpisodeDisplayName}
                         </span>
                       </div>
 
@@ -733,12 +738,11 @@ const Detail = () => {
                               Tự động phát tập tiếp theo
                             </p>
                             <p className="autoplay-countdown">
-                              Tập{" "}
-                              {
+                              {formatEpisodeDisplayName(
                                 item.episodes[0].server_data[
                                   getCurrentEpisodeIndex() + 1
-                                ]?.name
-                              }{" "}
+                                ]?.name,
+                              )}{" "}
                               sẽ phát sau {autoPlayCountdown} giây
                             </p>
                           </div>

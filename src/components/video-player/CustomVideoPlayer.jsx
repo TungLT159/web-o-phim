@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { formatEpisodeDisplayName } from "../../utils/episodeDisplayName";
 import "./custom-video-player.scss";
 
 const formatVideoTime = (value) => {
@@ -16,9 +17,19 @@ const formatVideoTime = (value) => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
+const shouldUseNativeControls = () => {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+
+  return (
+    window.matchMedia("(pointer: coarse)").matches ||
+    window.matchMedia("(hover: none)").matches
+  );
+};
+
 const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
   const playerRef = useRef(null);
   const hideControlsTimerRef = useRef(null);
+  const ignoreNextClickRef = useRef(false);
   const lastTapRef = useRef({ side: null, time: 0 });
   const seekFeedbackTimerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -31,6 +42,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [seekFeedback, setSeekFeedback] = useState(null);
+  const [useNativeControls] = useState(shouldUseNativeControls);
 
   const getVideo = useCallback(() => videoRef?.current, [videoRef]);
 
@@ -96,6 +108,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
     (event) => {
       if (!playerRef.current) return;
       if (event.target.closest?.(".custom-video-player__chrome")) return;
+      ignoreNextClickRef.current = true;
 
       const point = event.touches?.[0] || event.changedTouches?.[0] || event;
       if (typeof point.clientX !== "number") return;
@@ -119,6 +132,15 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
     },
     [revealControls, seekBy, showSeekFeedback],
   );
+
+  const handleSurfaceClick = useCallback(() => {
+    if (ignoreNextClickRef.current) {
+      ignoreNextClickRef.current = false;
+      return;
+    }
+
+    togglePlay();
+  }, [togglePlay]);
 
   const handleSeek = useCallback(
     (event) => {
@@ -156,14 +178,30 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
 
   const toggleFullscreen = useCallback(() => {
     const player = playerRef.current;
+    const video = getVideo();
     if (!player) return;
 
     if (!document.fullscreenElement) {
-      player.requestFullscreen?.();
+      if (player.requestFullscreen) {
+        player.requestFullscreen();
+      } else if (video?.webkitEnterFullscreen) {
+        video.webkitEnterFullscreen();
+      } else {
+        video?.requestFullscreen?.();
+      }
     } else {
       document.exitFullscreen?.();
     }
-  }, []);
+  }, [getVideo]);
+
+  const handleCenterPlayClick = useCallback(
+    (event) => {
+      event.stopPropagation();
+      ignoreNextClickRef.current = false;
+      togglePlay();
+    },
+    [togglePlay],
+  );
 
   useEffect(() => {
     const video = getVideo();
@@ -190,7 +228,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
       setIsMuted(video.muted);
     };
 
-    video.controls = false;
+    video.controls = useNativeControls;
     syncVolume();
 
     video.addEventListener("play", syncPlayback);
@@ -218,7 +256,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
         clearTimeout(seekFeedbackTimerRef.current);
       }
     };
-  }, [clearHideControlsTimer, getVideo, revealControls]);
+  }, [clearHideControlsTimer, getVideo, revealControls, useNativeControls]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -272,6 +310,16 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [seekBy, toggleFullscreen, toggleMute, togglePlay]);
 
+  if (useNativeControls) {
+    return (
+      <div ref={playerRef} className="custom-video-player custom-video-player--native">
+        <video ref={videoRef} autoPlay playsInline controls controlsList="nodownload">
+          Trình duyệt của bạn không hỗ trợ video HTML5.
+        </video>
+      </div>
+    );
+  }
+
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const volumePercent = `${(isMuted ? 0 : volume) * 100}%`;
   const volumeIcon = isMuted || volume === 0 ? "bx-volume-mute" : "bx-volume-full";
@@ -293,7 +341,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
       <button
         className="custom-video-player__hit-area"
         type="button"
-        onClick={togglePlay}
+        onClick={handleSurfaceClick}
         aria-label={isPlaying ? "Tạm dừng" : "Phát"}
       />
 
@@ -324,7 +372,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
         <button
           className="custom-video-player__center-play"
           type="button"
-          onClick={togglePlay}
+          onClick={handleCenterPlayClick}
           aria-label="Phát video"
         >
           <i className="bx bx-play" />
@@ -332,12 +380,12 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
       )}
 
       <div
-        className="custom-video-player__chrome"
+        className="custom-video-player__chrome custom-video-player__chrome--pass-through"
         aria-hidden={!showControls && isPlaying}
       >
-        <div className="custom-video-player__meta">
+        <div className="custom-video-player__meta custom-video-player__meta--pass-through">
           <span>{title || "Đang xem phim"}</span>
-          {episodeName && <strong>Tập {episodeName}</strong>}
+          {episodeName && <strong>{formatEpisodeDisplayName(episodeName)}</strong>}
         </div>
 
         <div className="custom-video-player__progress-row">
@@ -356,8 +404,9 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
           <span>{formatVideoTime(duration)}</span>
         </div>
 
-        <div className="custom-video-player__controls">
+        <div className="custom-video-player__controls custom-video-player__controls--primary">
           <button
+            className="custom-video-player__control-btn custom-video-player__control-btn--play"
             type="button"
             onClick={togglePlay}
             aria-label={isPlaying ? "Tạm dừng" : "Phát"}
@@ -365,6 +414,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
             <i className={`bx ${isPlaying ? "bx-pause" : "bx-play"}`} />
           </button>
           <button
+            className="custom-video-player__control-btn custom-video-player__control-btn--rewind"
             type="button"
             onClick={() => seekBy(-10)}
             aria-label="Tua lùi 10 giây"
@@ -373,6 +423,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
             <span>10</span>
           </button>
           <button
+            className="custom-video-player__control-btn custom-video-player__control-btn--forward"
             type="button"
             onClick={() => seekBy(10)}
             aria-label="Tua tới 10 giây"
@@ -382,6 +433,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
           </button>
           <div className="custom-video-player__volume">
             <button
+              className="custom-video-player__control-btn custom-video-player__control-btn--mute"
               type="button"
               onClick={toggleMute}
               aria-label={isMuted ? "Bật âm" : "Tắt âm"}
@@ -400,6 +452,7 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
             />
           </div>
           <button
+            className="custom-video-player__control-btn custom-video-player__control-btn--fullscreen"
             type="button"
             onClick={toggleFullscreen}
             aria-label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}

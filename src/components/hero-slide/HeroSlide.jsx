@@ -147,7 +147,7 @@ const HeroSlideItem = (props) => {
         <i class='bx bx-loader-alt bx-spin'></i>
         <p>Đang tải trailer...</p>
       </div>
-      <div class="modal__content__close">
+      <div class="modal__content__close modal__content__close--floating" aria-label="Đóng modal" role="button" tabindex="0">
         <i class="bx bx-x"></i>
       </div>
     `;
@@ -175,7 +175,7 @@ const HeroSlideItem = (props) => {
           <div class="trailer-container">
             <iframe src="${trailerUrl}" title="trailer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           </div>
-          <div class="modal__content__close">
+          <div class="modal__content__close modal__content__close--floating" aria-label="Đóng modal" role="button" tabindex="0">
             <i class="bx bx-x"></i>
           </div>
         `;
@@ -185,7 +185,7 @@ const HeroSlideItem = (props) => {
             <i class='bx bx-video-off'></i>
             <p>Không tìm thấy trailer cho phim này.</p>
           </div>
-          <div class="modal__content__close">
+          <div class="modal__content__close modal__content__close--floating" aria-label="Đóng modal" role="button" tabindex="0">
             <i class="bx bx-x"></i>
           </div>
         `;
@@ -208,7 +208,7 @@ const HeroSlideItem = (props) => {
           <i class='bx bx-error-circle'></i>
           <p>Lỗi khi tải trailer. Vui lòng thử lại sau.</p>
         </div>
-        <div class="modal__content__close">
+        <div class="modal__content__close modal__content__close--floating" aria-label="Đóng modal" role="button" tabindex="0">
           <i class="bx bx-x"></i>
         </div>
       `;
@@ -264,7 +264,10 @@ const TrailerModal = (props) => {
 
   return (
     <Modal active={false} id={`modal_${item.id}`}>
-      <ModalContent onClose={onClose}>
+      <ModalContent
+        onClose={onClose}
+        closeButtonClassName="modal__content__close--floating"
+      >
         <iframe
           ref={iframeRef}
           width="100%"

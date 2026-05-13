@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { formatEpisodeDisplayName } from "../../utils/episodeDisplayName";
 import "./episode-scroll.scss";
 
 const EpisodeScroll = ({ episodes, currentEpisode, onSelectEpisode }) => {
@@ -127,10 +128,12 @@ const EpisodeScroll = ({ episodes, currentEpisode, onSelectEpisode }) => {
             onClick={() => handleEpisodeClick(ep, index)}
             onFocus={() => handleEpisodeFocus(index)}
             tabIndex={0}
-            aria-label={`Tập ${ep.name}`}
+            aria-label={formatEpisodeDisplayName(ep.name)}
             aria-current={currentEpisode?.name === ep.name ? "true" : "false"}
           >
-            <span className="episode-btn__number">Tập {ep.name}</span>
+            <span className="episode-btn__number">
+              {formatEpisodeDisplayName(ep.name)}
+            </span>
           </button>
         ))}
       </div>
