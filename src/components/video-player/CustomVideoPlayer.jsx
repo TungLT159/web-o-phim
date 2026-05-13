@@ -20,6 +20,19 @@ const formatVideoTime = (value) => {
 const shouldUseNativeControls = () => {
   if (typeof window === "undefined" || !window.matchMedia) return false;
 
+  const userAgent = window.navigator?.userAgent || "";
+  const isKnownTvBrowser =
+    /android tv|smart-tv|smarttv|googletv|tizen|webos|appletv|apple tv|roku|aft|fire tv|crkey/i.test(
+      userAgent,
+    );
+  const maxTouchPoints = window.navigator?.maxTouchPoints || 0;
+  const viewportWidth = window.innerWidth || 0;
+  const viewportHeight = window.innerHeight || 0;
+  const isLargeNonTouchScreen =
+    maxTouchPoints === 0 && Math.max(viewportWidth, viewportHeight) >= 1280;
+
+  if (isKnownTvBrowser || isLargeNonTouchScreen) return false;
+
   return (
     window.matchMedia("(pointer: coarse)").matches ||
     window.matchMedia("(hover: none)").matches

@@ -4,9 +4,29 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import CustomVideoPlayer from "./CustomVideoPlayer";
 
 const originalMatchMedia = window.matchMedia;
+const originalUserAgent = window.navigator.userAgent;
+const originalMaxTouchPoints = window.navigator.maxTouchPoints;
+const originalInnerWidth = window.innerWidth;
+const originalInnerHeight = window.innerHeight;
 
 afterEach(() => {
   window.matchMedia = originalMatchMedia;
+  Object.defineProperty(window.navigator, "userAgent", {
+    configurable: true,
+    value: originalUserAgent,
+  });
+  Object.defineProperty(window.navigator, "maxTouchPoints", {
+    configurable: true,
+    value: originalMaxTouchPoints,
+  });
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: originalInnerWidth,
+  });
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: originalInnerHeight,
+  });
 });
 
 const setMediaProperty = (element, property, value) => {
@@ -24,6 +44,39 @@ const mockCoarsePointer = (matches) => {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
   }));
+};
+
+const mockInputMedia = ({ coarsePointer = false, hoverNone = false } = {}) => {
+  window.matchMedia = jest.fn().mockImplementation((query) => ({
+    matches:
+      (query.includes("pointer: coarse") && coarsePointer) ||
+      (query.includes("hover: none") && hoverNone),
+    media: query,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  }));
+};
+
+const mockUserAgent = (userAgent) => {
+  Object.defineProperty(window.navigator, "userAgent", {
+    configurable: true,
+    value: userAgent,
+  });
+};
+
+const mockViewport = ({ width, height, maxTouchPoints = 0 }) => {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: width,
+  });
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: height,
+  });
+  Object.defineProperty(window.navigator, "maxTouchPoints", {
+    configurable: true,
+    value: maxTouchPoints,
+  });
 };
 
 const renderPlayer = () => {
@@ -105,6 +158,30 @@ test("uses native video controls on coarse pointer devices", () => {
   expect(video.controls).toBe(true);
   expect(container.querySelector(".custom-video-player__chrome")).not.toBeInTheDocument();
   expect(container.querySelector(".custom-video-player__hit-area")).not.toBeInTheDocument();
+});
+
+test("uses custom controls on TV browsers even when hover is unavailable", () => {
+  mockInputMedia({ hoverNone: true });
+  mockUserAgent(
+    "Mozilla/5.0 (Linux; Android 11; Android TV) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+  );
+
+  const { container, video } = renderPlayer();
+
+  expect(video).not.toHaveAttribute("controls");
+  expect(container.querySelector(".custom-video-player__chrome")).toBeInTheDocument();
+  expect(screen.getByLabelText("Tua video")).toBeInTheDocument();
+});
+
+test("uses custom controls on large non-touch screens even when hover is unavailable", () => {
+  mockInputMedia({ hoverNone: true });
+  mockViewport({ width: 1920, height: 1080, maxTouchPoints: 0 });
+
+  const { container, video } = renderPlayer();
+
+  expect(video).not.toHaveAttribute("controls");
+  expect(container.querySelector(".custom-video-player__chrome")).toBeInTheDocument();
+  expect(screen.getByLabelText("Tua video")).toBeInTheDocument();
 });
 
 test("does not duplicate episode prefix in player metadata", () => {
