@@ -198,7 +198,7 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
         a {
           display: block;
           padding: 10px 20px;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           color: #d0d0d0;
           transition: all 0.25s ease;
           border-left: 3px solid transparent;
@@ -285,7 +285,7 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     background: transparent;
     color: #fff;
     outline: none;
-    font-size: 14.5px;
+    font-size: 0.9rem;
     padding: 0 8px;
 
     &::placeholder {
@@ -305,7 +305,7 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 1rem;
     box-shadow: 0 2px 8px rgba(255, 61, 113, 0.3);
     flex-shrink: 0;
 
@@ -324,12 +324,12 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     padding: 8px 14px;
 
     input {
-      font-size: 14px;
+      font-size: 0.875rem;
     }
 
     button {
       padding: 7px 10px;
-      font-size: 15px;
+      font-size: 0.95rem;
     }
   }
 

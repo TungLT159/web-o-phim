@@ -54,14 +54,21 @@ const tmdbApi = {
       .then((response) => response.data)
       .catch(() => axiosClient.get("/v1/api/phim/" + id, params));
   },
-  episode: (id, episodeName) => {
+  episode: (id, episodeName, episodeGroupIndex) => {
     const url = "/api/phim/" + id + "/episode";
     return axios
-      .get(url, { params: { name: episodeName } })
+      .get(url, { params: { name: episodeName, group: episodeGroupIndex } })
       .then((response) => response.data)
       .catch(async () => {
         const response = await axiosClient.get("/v1/api/phim/" + id);
-        const episodes = response.data?.item?.episodes?.[0]?.server_data || [];
+        const serverGroups = response.data?.item?.episodes || [];
+        const hasGroupIndex = episodeGroupIndex !== null && episodeGroupIndex !== undefined && episodeGroupIndex !== "";
+        const server = hasGroupIndex && Number.isInteger(Number(episodeGroupIndex))
+          ? serverGroups[Number(episodeGroupIndex)]
+          : null;
+        const episodes = server
+          ? server.server_data || []
+          : serverGroups.flatMap((group) => group.server_data || []);
         const episode = episodes.find(
           (ep) => ep.name === episodeName || ep.slug === episodeName,
         );

@@ -1,11 +1,14 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { Readable } = require("stream");
 
 const PORT = process.env.PORT || 3000;
 const OPHIM_BASE_URL = "https://ophim1.com";
 const BUILD_DIR = path.join(__dirname, "build");
 const streamTokens = new Map();
+const movieCache = new Map();
+const MOVIE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -63,16 +66,35 @@ function sanitizeMovieItem(item) {
 }
 
 async function fetchMovie(id) {
-  const response = await fetch(`${OPHIM_BASE_URL}/v1/api/phim/${encodeURIComponent(id)}`);
+  const cacheKey = encodeURIComponent(id);
+  const cached = movieCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
+  movieCache.delete(cacheKey);
+  const response = await fetch(`${OPHIM_BASE_URL}/v1/api/phim/${cacheKey}`);
   if (!response.ok) {
     throw new Error(`Upstream movie request failed: ${response.status}`);
   }
-  return response.json();
+
+  const data = await response.json();
+  movieCache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + MOVIE_CACHE_TTL_MS,
+  });
+  return data;
 }
 
-async function getEpisode(id, episodeName) {
+async function getEpisode(id, episodeName, episodeGroupIndex) {
   const data = await fetchMovie(id);
-  const episodes = data?.data?.item?.episodes?.flatMap((server) => server.server_data || []) || [];
+  const serverGroups = data?.data?.item?.episodes || [];
+  const hasGroupIndex = episodeGroupIndex !== null && episodeGroupIndex !== "";
+  const groupIndex = Number(episodeGroupIndex);
+  const server = hasGroupIndex && Number.isInteger(groupIndex) ? serverGroups[groupIndex] : null;
+  const episodes = server
+    ? server.server_data || []
+    : serverGroups.flatMap((group) => group.server_data || []);
   return episodes.find((episode) => episode.name === episodeName || episode.slug === episodeName);
 }
 
@@ -96,19 +118,26 @@ async function handleMovieDetail(req, res, id) {
     return;
   }
   if (data?.data?.item) {
-    data.data.item = sanitizeMovieItem(data.data.item);
+    data = {
+      ...data,
+      data: {
+        ...data.data,
+        item: sanitizeMovieItem(data.data.item),
+      },
+    };
   }
   sendJson(res, 200, data);
 }
 
 async function handleEpisode(req, res, id, requestUrl) {
   const episodeName = requestUrl.searchParams.get("name");
+  const episodeGroupIndex = requestUrl.searchParams.get("group");
   if (!episodeName) {
     sendJson(res, 400, { message: "Missing episode name" });
     return;
   }
 
-  const episode = await getEpisode(id, episodeName);
+  const episode = await getEpisode(id, episodeName, episodeGroupIndex);
   if (!episode?.link_m3u8) {
     sendJson(res, 404, { message: "Episode stream not found" });
     return;
@@ -160,8 +189,28 @@ async function handleStream(req, res, requestUrl) {
     "Content-Type": contentType,
     "Cache-Control": "public, max-age=86400",
   });
-  const buffer = Buffer.from(await upstream.arrayBuffer());
-  res.end(buffer);
+  if (!upstream.body) {
+    res.end();
+    return;
+  }
+
+  const upstreamStream = Readable.fromWeb(upstream.body);
+
+  upstreamStream.on("error", () => {
+    if (!res.headersSent) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Upstream stream error" }));
+      return;
+    }
+
+    res.destroy();
+  });
+
+  res.on("close", () => {
+    upstreamStream.destroy();
+  });
+
+  upstreamStream.pipe(res);
 }
 
 function serveStatic(req, res) {

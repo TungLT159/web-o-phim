@@ -1,6 +1,6 @@
 import React from "react";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import CustomVideoPlayer from "./CustomVideoPlayer";
 
 const originalMatchMedia = window.matchMedia;
@@ -8,8 +8,12 @@ const originalUserAgent = window.navigator.userAgent;
 const originalMaxTouchPoints = window.navigator.maxTouchPoints;
 const originalInnerWidth = window.innerWidth;
 const originalInnerHeight = window.innerHeight;
+const originalRequestAnimationFrame = window.requestAnimationFrame;
+const originalCancelAnimationFrame = window.cancelAnimationFrame;
 
 afterEach(() => {
+  jest.useRealTimers();
+  window.history.pushState({}, "", "/");
   window.matchMedia = originalMatchMedia;
   Object.defineProperty(window.navigator, "userAgent", {
     configurable: true,
@@ -27,7 +31,13 @@ afterEach(() => {
     configurable: true,
     value: originalInnerHeight,
   });
+  window.requestAnimationFrame = originalRequestAnimationFrame;
+  window.cancelAnimationFrame = originalCancelAnimationFrame;
 });
+
+const setDebugFpsQuery = () => {
+  window.history.pushState({}, "", "?debugFps=1");
+};
 
 const setMediaProperty = (element, property, value) => {
   Object.defineProperty(element, property, {
@@ -118,6 +128,18 @@ const renderPlayerWithEpisodeName = (episodeName) => {
   );
 };
 
+const renderPlayerWithEpisodeMeta = ({ episodeName, episodeGroupTitle }) => {
+  const videoRef = React.createRef();
+  return render(
+    <CustomVideoPlayer
+      videoRef={videoRef}
+      title="Test Movie"
+      episodeName={episodeName}
+      episodeGroupTitle={episodeGroupTitle}
+    />,
+  );
+};
+
 const mockPlayerBounds = (container) => {
   const player = container.querySelector(".custom-video-player");
   player.getBoundingClientRect = jest.fn(() => ({
@@ -147,6 +169,62 @@ test("renders title, episode, and custom controls", () => {
   expect(container.querySelector(".custom-video-player__meta")).toHaveClass(
     "custom-video-player__meta--pass-through",
   );
+});
+
+test("shows FPS debug overlay when debugFps query is enabled", () => {
+  setDebugFpsQuery();
+
+  renderPlayer();
+
+  expect(screen.getByText("FPS debug")).toBeInTheDocument();
+});
+
+test("shows FPS debug overlay with native video controls", () => {
+  mockCoarsePointer(true);
+  setDebugFpsQuery();
+
+  renderPlayer();
+
+  expect(screen.getByText("FPS debug")).toBeInTheDocument();
+});
+
+test("hides FPS debug overlay by default", () => {
+  renderPlayer();
+
+  expect(screen.queryByText("FPS debug")).not.toBeInTheDocument();
+});
+
+test("updates FPS debug overlay from playback quality snapshots", () => {
+  jest.useFakeTimers();
+  setDebugFpsQuery();
+  const { video } = renderPlayer();
+  let totalVideoFrames = 100;
+  let droppedVideoFrames = 2;
+  video.getVideoPlaybackQuality = jest.fn(() => ({
+    totalVideoFrames,
+    droppedVideoFrames,
+  }));
+
+  act(() => {
+    jest.advanceTimersByTime(2000);
+  });
+  totalVideoFrames = 160;
+  droppedVideoFrames = 6;
+  act(() => {
+    jest.advanceTimersByTime(2000);
+  });
+
+  expect(screen.getByText("FPS: 30.0")).toBeInTheDocument();
+  expect(screen.getByText("Drop: 2.0 fps")).toBeInTheDocument();
+  expect(screen.getByText("Frames: 60/4 dropped")).toBeInTheDocument();
+});
+
+test("shows unsupported FPS debug message when playback quality API is missing", () => {
+  setDebugFpsQuery();
+
+  renderPlayer();
+
+  expect(screen.getByText("Playback metrics unsupported")).toBeInTheDocument();
 });
 
 test("uses native video controls on coarse pointer devices", () => {
@@ -189,6 +267,15 @@ test("does not duplicate episode prefix in player metadata", () => {
 
   expect(screen.getByText("Tập 1")).toBeInTheDocument();
   expect(screen.queryByText("Tập Tập 1")).not.toBeInTheDocument();
+});
+
+test("renders episode group title in player metadata", () => {
+  renderPlayerWithEpisodeMeta({
+    episodeName: "1",
+    episodeGroupTitle: "Phần 2",
+  });
+
+  expect(screen.getByText("Phần 2 - Tập 1")).toBeInTheDocument();
 });
 
 test("plays video from the center play button", () => {
@@ -256,6 +343,29 @@ test("updates video time when seeking", () => {
   fireEvent.change(progress, { target: { value: "45" } });
 
   expect(video.currentTime).toBe(45);
+});
+
+test("coalesces frequent video time updates into one animation frame", () => {
+  const frameCallbacks = [];
+  window.requestAnimationFrame = jest.fn((callback) => {
+    frameCallbacks.push(callback);
+    return frameCallbacks.length;
+  });
+  window.cancelAnimationFrame = jest.fn();
+  const { video } = renderPlayer();
+
+  video.currentTime = 10;
+  fireEvent(video, new Event("timeupdate"));
+  video.currentTime = 11;
+  fireEvent(video, new Event("timeupdate"));
+
+  expect(window.requestAnimationFrame).toHaveBeenCalledTimes(1);
+
+  act(() => {
+    frameCallbacks[0]();
+  });
+
+  expect(screen.getByText("00:11")).toBeInTheDocument();
 });
 
 test("toggles mute", () => {

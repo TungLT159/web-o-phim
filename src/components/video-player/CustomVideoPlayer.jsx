@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { formatEpisodeDisplayName } from "../../utils/episodeDisplayName";
+import {
+  calculatePlaybackFps,
+  getPlaybackQualitySnapshot,
+} from "../../utils/videoPlaybackMetrics";
 import "./custom-video-player.scss";
 
 const formatVideoTime = (value) => {
@@ -39,12 +43,29 @@ const shouldUseNativeControls = () => {
   );
 };
 
-const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
+const shouldShowFpsDebug = () => {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("debugFps") === "1";
+};
+
+const formatFpsMetric = (value) => {
+  if (!Number.isFinite(value)) return "0.0";
+  return value.toFixed(1);
+};
+
+const CustomVideoPlayer = ({
+  videoRef,
+  title,
+  episodeName,
+  episodeGroupTitle,
+}) => {
   const playerRef = useRef(null);
   const hideControlsTimerRef = useRef(null);
   const ignoreNextClickRef = useRef(false);
   const lastTapRef = useRef({ side: null, time: 0 });
   const seekFeedbackTimerRef = useRef(null);
+  const timeUpdateFrameRef = useRef(null);
+  const playbackQualitySnapshotRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -56,6 +77,8 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [seekFeedback, setSeekFeedback] = useState(null);
   const [useNativeControls] = useState(shouldUseNativeControls);
+  const [showFpsDebug] = useState(shouldShowFpsDebug);
+  const [fpsDebugMetrics, setFpsDebugMetrics] = useState(null);
 
   const getVideo = useCallback(() => videoRef?.current, [videoRef]);
 
@@ -224,7 +247,14 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
       setIsPlaying(!video.paused);
       revealControls();
     };
-    const syncTime = () => setCurrentTime(video.currentTime || 0);
+    const syncTime = () => {
+      if (timeUpdateFrameRef.current) return;
+
+      timeUpdateFrameRef.current = requestAnimationFrame(() => {
+        setCurrentTime(video.currentTime || 0);
+        timeUpdateFrameRef.current = null;
+      });
+    };
     const syncDuration = () => setDuration(video.duration || 0);
     const handleWaiting = () => setIsLoading(true);
     const handleReady = () => {
@@ -265,6 +295,10 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
       video.removeEventListener("error", handleError);
       video.removeEventListener("volumechange", syncVolume);
       clearHideControlsTimer();
+      if (timeUpdateFrameRef.current) {
+        cancelAnimationFrame(timeUpdateFrameRef.current);
+        timeUpdateFrameRef.current = null;
+      }
       if (seekFeedbackTimerRef.current) {
         clearTimeout(seekFeedbackTimerRef.current);
       }
@@ -323,12 +357,65 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [seekBy, toggleFullscreen, toggleMute, togglePlay]);
 
+  useEffect(() => {
+    if (!showFpsDebug) return undefined;
+
+    const updatePlaybackMetrics = () => {
+      const video = getVideo();
+      const snapshot = getPlaybackQualitySnapshot(video);
+
+      if (!snapshot) {
+        setFpsDebugMetrics({ unsupported: true });
+        return;
+      }
+
+      const metrics = calculatePlaybackFps(
+        playbackQualitySnapshotRef.current,
+        snapshot,
+      );
+      playbackQualitySnapshotRef.current = snapshot;
+
+      if (metrics) {
+        setFpsDebugMetrics(metrics);
+      }
+    };
+
+    updatePlaybackMetrics();
+    const intervalId = setInterval(updatePlaybackMetrics, 2000);
+
+    return () => {
+      clearInterval(intervalId);
+      playbackQualitySnapshotRef.current = null;
+    };
+  }, [getVideo, showFpsDebug]);
+
+  const fpsDebugOverlay = showFpsDebug ? (
+    <div className="custom-video-player__fps-debug" aria-live="polite">
+      <strong>FPS debug</strong>
+      {fpsDebugMetrics?.unsupported ? (
+        <span>Playback metrics unsupported</span>
+      ) : fpsDebugMetrics ? (
+        <>
+          <span>FPS: {formatFpsMetric(fpsDebugMetrics.fps)}</span>
+          <span>Drop: {formatFpsMetric(fpsDebugMetrics.droppedFps)} fps</span>
+          <span>
+            Frames: {fpsDebugMetrics.renderedFrames}/
+            {fpsDebugMetrics.droppedFrames} dropped
+          </span>
+        </>
+      ) : (
+        <span>Collecting metrics...</span>
+      )}
+    </div>
+  ) : null;
+
   if (useNativeControls) {
     return (
       <div ref={playerRef} className="custom-video-player custom-video-player--native">
         <video ref={videoRef} autoPlay playsInline controls controlsList="nodownload">
           Trình duyệt của bạn không hỗ trợ video HTML5.
         </video>
+        {fpsDebugOverlay}
       </div>
     );
   }
@@ -336,6 +423,11 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const volumePercent = `${(isMuted ? 0 : volume) * 100}%`;
   const volumeIcon = isMuted || volume === 0 ? "bx-volume-mute" : "bx-volume-full";
+  const episodeLabel = episodeName
+    ? [episodeGroupTitle, formatEpisodeDisplayName(episodeName)]
+        .filter(Boolean)
+        .join(" - ")
+    : "";
 
   return (
     <div
@@ -392,13 +484,15 @@ const CustomVideoPlayer = ({ videoRef, title, episodeName }) => {
         </button>
       )}
 
+      {fpsDebugOverlay}
+
       <div
         className="custom-video-player__chrome custom-video-player__chrome--pass-through"
         aria-hidden={!showControls && isPlaying}
       >
         <div className="custom-video-player__meta custom-video-player__meta--pass-through">
           <span>{title || "Đang xem phim"}</span>
-          {episodeName && <strong>{formatEpisodeDisplayName(episodeName)}</strong>}
+          {episodeLabel && <strong>{episodeLabel}</strong>}
         </div>
 
         <div className="custom-video-player__progress-row">

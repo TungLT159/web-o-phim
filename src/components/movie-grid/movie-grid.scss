@@ -28,6 +28,7 @@
 .movie-grid__title {
     font-size: 2rem;
     font-weight: 700;
+    line-height: 1.25;
     margin-bottom: 2rem;
     text-align: center;
     color: #fff;
@@ -82,6 +83,7 @@
         background: rgba(255, 255, 255, 0.08);
         color: #fff;
         font-size: 15px;
+        line-height: 1.4;
         outline: none;
         transition: all 0.3s ease;
         backdrop-filter: blur(8px);
@@ -108,6 +110,7 @@
         color: #fff;
         font-weight: 600;
         font-size: 14px;
+        line-height: 1.4;
         cursor: pointer;
         transition: all 0.3s ease;
         box-shadow: 0 2px 12px rgba(229, 9, 20, 0.4);

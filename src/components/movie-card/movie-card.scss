@@ -56,11 +56,11 @@
         position: absolute;
         padding: 5px 12px;
         border-radius: 8px;
-        font-size: 11px;
+        font-size: 0.7rem;
         font-weight: 700;
         z-index: 3;
         text-transform: uppercase;
-        letter-spacing: 0.8px;
+        letter-spacing: 0.04em;
         backdrop-filter: blur(8px);
         border: 1px solid rgba(255, 255, 255, 0.2);
         transition: all 0.3s ease;
@@ -165,10 +165,10 @@
     // Title below card
     &__title {
         margin-top: 0.75rem;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
         color: #fff;
-        line-height: 1.4;
+        line-height: 1.35;
         transition: all 0.3s ease;
         display: -webkit-box;
         -webkit-line-clamp: 2;

@@ -12,30 +12,42 @@ import tmdbApi from '../api/tmdbApi';
  */
 const linkCache = new Map();
 
+const getCacheKey = (movieId, episodeName, episodeGroupIndex) =>
+  `${movieId}_${episodeGroupIndex ?? ""}_${episodeName}`;
+
 /**
  * Lấy link xem của một episode cụ thể
  * @param {string} movieId - ID của phim
  * @param {string} episodeName - Tên tập phim
  * @returns {Promise<object>} Object chứa {link_m3u8, link_embed}
  */
-export const getEpisodeLink = async (movieId, episodeName) => {
-  try {
-    const cacheKey = `${movieId}_${episodeName}`;
-    
-    // Kiểm tra cache
-    if (linkCache.has(cacheKey)) {
-      return linkCache.get(cacheKey);
-    }
-    
-    const links = await tmdbApi.episode(movieId, episodeName);
-    
-    linkCache.set(cacheKey, links);
-    return links;
-    
-  } catch (error) {
-    console.error(`Error fetching episode link for ${movieId}/${episodeName}:`, error);
-    return { playlistUrl: null };
+export const getEpisodeLink = async (movieId, episodeName, episodeGroupIndex) => {
+  const cacheKey = getCacheKey(movieId, episodeName, episodeGroupIndex);
+
+  // Kiểm tra cache
+  if (linkCache.has(cacheKey)) {
+    return linkCache.get(cacheKey);
   }
+
+  const linkPromise = tmdbApi
+    .episode(movieId, episodeName, episodeGroupIndex)
+    .then((links) => links || { playlistUrl: null })
+    .catch((error) => {
+      linkCache.delete(cacheKey);
+      console.error(`Error fetching episode link for ${movieId}/${episodeName}:`, error);
+      return { playlistUrl: null };
+    });
+
+  linkCache.set(cacheKey, linkPromise);
+  return linkPromise;
+};
+
+export const prefetchEpisodeLink = (movieId, episodeName, episodeGroupIndex) => {
+  if (!movieId || !episodeName) {
+    return Promise.resolve({ playlistUrl: null });
+  }
+
+  return getEpisodeLink(movieId, episodeName, episodeGroupIndex);
 };
 
 /**
@@ -43,8 +55,8 @@ export const getEpisodeLink = async (movieId, episodeName) => {
  * @param {string} movieId - ID của phim
  * @param {string} episodeName - Tên tập phim
  */
-export const clearEpisodeLinkCache = (movieId, episodeName) => {
-  const cacheKey = `${movieId}_${episodeName}`;
+export const clearEpisodeLinkCache = (movieId, episodeName, episodeGroupIndex) => {
+  const cacheKey = getCacheKey(movieId, episodeName, episodeGroupIndex);
   linkCache.delete(cacheKey);
 };
 

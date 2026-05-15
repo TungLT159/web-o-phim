@@ -20,6 +20,7 @@
     h2 {
       font-size: 1.5rem;
       font-weight: 700;
+      line-height: 1.25;
       color: #fff;
       display: flex;
       align-items: center;
@@ -39,7 +40,7 @@
       font-size: 0.85rem;
       color: rgba(255, 255, 255, 0.5);
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.06em;
       font-weight: 600;
       padding: 4px 12px;
       background: rgba(255, 255, 255, 0.05);
@@ -244,7 +245,7 @@
     font-weight: 600;
     color: #fff;
     margin: 0 0 0.5rem 0;
-    line-height: 1.4;
+    line-height: 1.35;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;

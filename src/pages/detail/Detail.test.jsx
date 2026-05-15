@@ -1,0 +1,261 @@
+import React from "react";
+import "@testing-library/jest-dom";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
+import Detail from "./Detail";
+import tmdbApi from "../../api/tmdbApi";
+import { clearAllEpisodeLinks } from "../../utils/episodeLinkManager";
+
+jest.mock("hls.js", () => ({
+  isSupported: () => false,
+}));
+
+jest.mock("../../api/tmdbApi", () => ({
+  detail: jest.fn(),
+  episode: jest.fn(() => Promise.resolve({ playlistUrl: null })),
+}));
+
+jest.mock("../../utils/tmdbImageFetcher", () => ({
+  fetchTMDBImages: jest.fn(() =>
+    Promise.resolve({ posterUrl: "/poster.jpg", backdropUrl: "/backdrop.jpg", overview: "" }),
+  ),
+}));
+
+jest.mock("../../components/similar-movies/SimilarMovies", () => () => (
+  <div>Similar movies loaded</div>
+));
+
+jest.mock("../../components/video-player/CustomVideoPlayer", () => ({
+  videoRef,
+}) => <video ref={videoRef} data-testid="video-player" />);
+
+jest.mock("../../components/episode-scroll/EpisodeScroll", () => ({
+  episodes,
+  onSelectEpisode,
+}) => (
+  <button type="button" onClick={() => onSelectEpisode(episodes[1])}>
+    Chọn tập 2
+  </button>
+));
+
+jest.mock("react-helmet", () => ({
+  Helmet: ({ children }) => <>{children}</>,
+}));
+
+const NavigateToEpisodeButton = () => {
+  const navigate = useNavigate();
+
+  return (
+    <button type="button" onClick={() => navigate("?ep=0:tap-2")}>
+      Đi tới tập 2
+    </button>
+  );
+};
+
+const NavigateToMovieButton = () => {
+  const navigate = useNavigate();
+
+  return (
+    <button type="button" onClick={() => navigate("/movie/next-movie")}>
+      Đi tới phim mới
+    </button>
+  );
+};
+
+const movieDetail = {
+  title: "Test Movie",
+  name: "Test Movie",
+  content: "Test content",
+  episode_current: "Tập 2",
+  episodes: [
+    {
+      server_name: "Vietsub",
+      server_data: [
+        { name: "1", slug: "tap-1" },
+        { name: "2", slug: "tap-2" },
+      ],
+    },
+  ],
+};
+
+beforeEach(() => {
+  clearAllEpisodeLinks();
+  localStorage.clear();
+  window.scrollTo = jest.fn();
+  window.HTMLElement.prototype.scrollIntoView = jest.fn();
+  window.HTMLMediaElement.prototype.load = jest.fn();
+  tmdbApi.detail.mockResolvedValue({ data: { item: movieDetail } });
+  tmdbApi.episode.mockResolvedValue({ playlistUrl: "/video.m3u8" });
+});
+
+test("saved progress prefers group-aware episode keys over legacy episode names", async () => {
+  localStorage.setItem(
+    "ophim_watch_history",
+    JSON.stringify([
+      {
+        key: "test-movie_0:tap-1",
+        movieId: "test-movie",
+        episodeName: "0:tap-1",
+        currentTime: 240,
+        duration: 1200,
+        percentage: 20,
+      },
+      {
+        key: "test-movie_1",
+        movieId: "test-movie",
+        episodeName: "1",
+        currentTime: 120,
+        duration: 1200,
+        percentage: 10,
+      },
+    ]),
+  );
+
+  render(
+    <MemoryRouter
+      initialEntries={["/movie/test-movie?ep=0:tap-1"]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route path="/:category/:id" element={<Detail />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByText(/Tiếp tục xem từ/)).toHaveTextContent(
+    "Tiếp tục xem từ 04:00?",
+  );
+});
+
+test("selecting an episode updates the URL without refetching movie detail", async () => {
+  render(
+    <MemoryRouter
+      initialEntries={["/movie/test-movie"]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route path="/:category/:id" element={<Detail />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByText("Chọn tập 2");
+  expect(tmdbApi.detail).toHaveBeenCalledTimes(1);
+
+  fireEvent.click(screen.getByText("Chọn tập 2"));
+
+  await waitFor(() => expect(tmdbApi.detail).toHaveBeenCalledTimes(1));
+});
+
+test("defers similar movies until after the critical video area renders", async () => {
+  render(
+    <MemoryRouter
+      initialEntries={["/movie/test-movie"]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route path="/:category/:id" element={<Detail />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByTestId("video-player");
+
+  expect(screen.queryByText("Similar movies loaded")).not.toBeInTheDocument();
+});
+
+test("URL episode changes load saved progress for the new episode", async () => {
+  localStorage.setItem(
+    "ophim_watch_history",
+    JSON.stringify([
+      {
+        key: "test-movie_2",
+        movieId: "test-movie",
+        episodeName: "2",
+        currentTime: 120,
+        duration: 1200,
+        percentage: 10,
+      },
+    ]),
+  );
+
+  render(
+    <MemoryRouter
+      initialEntries={["/movie/test-movie"]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route
+          path="/:category/:id"
+          element={
+            <>
+              <NavigateToEpisodeButton />
+              <Detail />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByText("Đi tới tập 2");
+  expect(screen.queryByText(/Tiếp tục xem từ/)).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByText("Đi tới tập 2"));
+
+  expect(await screen.findByText(/Tiếp tục xem từ/)).toHaveTextContent(
+    "Tiếp tục xem từ 02:00?",
+  );
+});
+
+test("shows a playback error when the current episode has no playable link", async () => {
+  tmdbApi.episode.mockResolvedValue({ playlistUrl: null, link_embed: null });
+
+  render(
+    <MemoryRouter
+      initialEntries={["/movie/test-movie"]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route path="/:category/:id" element={<Detail />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect(
+    await screen.findByText("Không tìm thấy link phát video."),
+  ).toBeInTheDocument();
+});
+
+test("route id changes do not request old episode slug for the new movie while detail is pending", async () => {
+  tmdbApi.detail
+    .mockResolvedValueOnce({ data: { item: movieDetail } })
+    .mockImplementationOnce(() => new Promise(() => {}));
+
+  render(
+    <MemoryRouter
+      initialEntries={["/movie/test-movie"]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route
+          path="/:category/:id"
+          element={
+            <>
+              <NavigateToMovieButton />
+              <Detail />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await screen.findByTestId("video-player");
+
+  fireEvent.click(screen.getByText("Đi tới phim mới"));
+
+  await waitFor(() => expect(tmdbApi.detail).toHaveBeenCalledTimes(2));
+
+  expect(tmdbApi.episode).not.toHaveBeenCalledWith("next-movie", "tap-1", 0);
+});

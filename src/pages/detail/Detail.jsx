@@ -6,8 +6,6 @@ import React, {
   useMemo,
 } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import Hls from "hls.js";
-import tmdbApi from "../../api/tmdbApi";
 import { fetchTMDBImages } from "../../utils/tmdbImageFetcher";
 import {
   saveWatchProgress,
@@ -15,25 +13,46 @@ import {
   shouldShowContinueWatching,
   formatTime,
 } from "../../utils/watchHistoryManager";
-import { getEpisodeLink } from "../../utils/episodeLinkManager";
 import "./detail.scss";
 import { Helmet } from "react-helmet";
 import SimilarMovies from "../../components/similar-movies/SimilarMovies";
 import EpisodeScroll from "../../components/episode-scroll/EpisodeScroll";
 import CustomVideoPlayer from "../../components/video-player/CustomVideoPlayer";
 import { formatEpisodeDisplayName } from "../../utils/episodeDisplayName";
+import { useMovieDetail } from "./useMovieDetail";
+import { getEpisodeIdentity, useEpisodeCatalog } from "./useEpisodeCatalog";
+import { useEpisodePlayback } from "./useEpisodePlayback";
+
+const getEpisodeProgressKey = (episode) => getEpisodeIdentity(episode);
+
+const getEpisodeProgressKeysForRead = (episode) => {
+  const progressKey = getEpisodeProgressKey(episode);
+  if (!progressKey) return [];
+
+  return episode?.name && episode.name !== progressKey
+    ? [progressKey, episode.name]
+    : [progressKey];
+};
+
+const runWhenIdle = (callback) => {
+  if (typeof window !== "undefined" && window.requestIdleCallback) {
+    const idleId = window.requestIdleCallback(callback, { timeout: 1500 });
+    return () => window.cancelIdleCallback?.(idleId);
+  }
+
+  const timeoutId = setTimeout(callback, 1500);
+  return () => clearTimeout(timeoutId);
+};
 
 const Detail = () => {
   const { category, id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [item, setItem] = useState(null);
+  const { item, loadError } = useMovieDetail(category, id);
   const [poster_url, setPosterUrl] = useState("/poster-mau.png");
   const [backdrop_url, setBackdropUrl] = useState("");
   const [overview, setOverview] = useState("");
-  const [currentEp, setCurrentEp] = useState(null);
-  const [loadError, setLoadError] = useState(null);
   const [autoPlayCountdown, setAutoPlayCountdown] = useState(null);
   const [showAutoPlayNotice, setShowAutoPlayNotice] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(() => {
@@ -45,16 +64,35 @@ const Detail = () => {
   // Watch history states
   const [showContinueWatching, setShowContinueWatching] = useState(false);
   const [savedProgress, setSavedProgress] = useState(null);
+  const [showSecondaryContent, setShowSecondaryContent] = useState(false);
   const saveProgressIntervalRef = useRef(null);
 
   const videoRef = useRef(null);
   const autoPlayTimerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
-  const hlsRef = useRef(null);
+
+  // ✅ Lấy episode từ URL param nếu có
+  const query = new URLSearchParams(location.search);
+  const epFromUrl = query.get("ep");
+  const {
+    episodeGroups,
+    episodeList,
+    currentEpisode: currentEp,
+    currentEpisodeIndex,
+    selectEpisode,
+  } = useEpisodeCatalog(item, epFromUrl);
 
   const currentEpisodeDisplayName = currentEp
     ? formatEpisodeDisplayName(currentEp.name)
     : "";
+  const nextEpisode =
+    currentEpisodeIndex >= 0 ? episodeList[currentEpisodeIndex + 1] : null;
+  const { playbackError } = useEpisodePlayback({
+    movieId: id,
+    episode: currentEp,
+    nextEpisode,
+    videoRef,
+  });
 
   // ✅ Clear auto-play timers
   const clearAutoPlayTimers = useCallback(() => {
@@ -81,14 +119,6 @@ const Detail = () => {
       clearAutoPlayTimers();
     }
   }, [autoPlayEnabled, clearAutoPlayTimers]);
-
-  // ✅ Get current episode index
-  const getCurrentEpisodeIndex = useCallback(() => {
-    if (!item?.episodes?.[0]?.server_data || !currentEp) return -1;
-    return item.episodes[0].server_data.findIndex(
-      (ep) => ep.name === currentEp.name,
-    );
-  }, [item, currentEp]);
 
   // ✅ Memoize genres list
   const genresList = useMemo(() => {
@@ -129,55 +159,35 @@ const Detail = () => {
     return null;
   }, [item]);
 
-  // ✅ Lấy episode từ URL param nếu có
-  const query = new URLSearchParams(location.search);
-  const epFromUrl = query.get("ep");
+  const applyEpisodeState = useCallback(
+    (episode) => {
+      selectEpisode(episode);
+    },
+    [selectEpisode],
+  );
 
   useEffect(() => {
-    const getDetail = async () => {
-      try {
-        setLoadError(null);
-        const response = await tmdbApi.detail(category, id, { params: {} });
-        const data = response.data.item;
-      
-        setItem(data);
+    clearAutoPlayTimers();
+    setShowContinueWatching(false);
+    setSavedProgress(null);
 
-      // Nếu không phải Trailer → set tập từ URL hoặc tập đầu
-        if (
-          data.episode_current !== "Trailer" &&
-          data.episodes?.[0]?.server_data
-        ) {
-          let defaultEp = data.episodes[0].server_data[0];
-          if (epFromUrl) {
-            const found = data.episodes[0].server_data.find(
-              (e) => e.name === epFromUrl,
-            );
-            if (found) defaultEp = found;
-          }
-          setCurrentEp(defaultEp);
+    if (!currentEp) return;
 
-          // Kiểm tra xem có watch progress không
-          const progress = getWatchProgress(id, defaultEp.name);
-          if (
-            progress &&
-            shouldShowContinueWatching(progress.currentTime, progress.duration)
-          ) {
-            setSavedProgress(progress);
-            setShowContinueWatching(true);
-          }
-        }
-        window.scrollTo(0, 0);
-      } catch (error) {
-        console.error("Error loading movie detail:", error);
-        setItem(null);
-        setCurrentEp(null);
-        setLoadError("Không tải được dữ liệu phim. Vui lòng kiểm tra lại đường dẫn hoặc thử lại sau.");
-      }
-    };
-    getDetail();
-  }, [category, id, epFromUrl]);
+    const progress = getEpisodeProgressKeysForRead(currentEp)
+      .map((episodeKey) => getWatchProgress(id, episodeKey))
+      .find(Boolean);
+    if (
+      progress &&
+      shouldShowContinueWatching(progress.currentTime, progress.duration)
+    ) {
+      setSavedProgress(progress);
+      setShowContinueWatching(true);
+    }
+  }, [clearAutoPlayTimers, currentEp, id]);
 
   useEffect(() => {
+    let isCancelled = false;
+
     const loadImages = async () => {
       if (!id || !item?.tmdb) return;
       const {
@@ -185,28 +195,36 @@ const Detail = () => {
         backdropUrl,
         overview: tmdbOverview,
       } = await fetchTMDBImages(item.tmdb);
+
+      if (isCancelled) return;
+
       setPosterUrl(posterUrl);
       setBackdropUrl(backdropUrl);
       setOverview(tmdbOverview);
     };
-    loadImages();
+
+    const cancelIdle = runWhenIdle(loadImages);
+    return () => {
+      isCancelled = true;
+      cancelIdle();
+    };
   }, [id, item?.tmdb]);
+
+  useEffect(() => {
+    if (!item) return undefined;
+
+    setShowSecondaryContent(false);
+    return runWhenIdle(() => setShowSecondaryContent(true));
+  }, [item]);
 
   // ✅ Khi chọn tập → cập nhật state và URL
   const handleSelectEpisode = useCallback(
     (ep) => {
-      setCurrentEp(ep);
-
-      // Clear auto-play timers
-      clearAutoPlayTimers();
-
-      // Ẩn continue watching notification khi chọn tập mới
-      setShowContinueWatching(false);
-      setSavedProgress(null);
+      applyEpisodeState(ep);
 
       // cập nhật URL param
       const searchParams = new URLSearchParams(location.search);
-      searchParams.set("ep", ep.name);
+      searchParams.set("ep", getEpisodeIdentity(ep));
       navigate(
         {
           pathname: location.pathname,
@@ -222,40 +240,28 @@ const Detail = () => {
           block: "center",
         });
       }
-
-      // Kiểm tra watch progress cho tập mới
-      const progress = getWatchProgress(id, ep.name);
-      if (
-        progress &&
-        shouldShowContinueWatching(progress.currentTime, progress.duration)
-      ) {
-        setSavedProgress(progress);
-        setShowContinueWatching(true);
-      }
     },
-    [location.search, location.pathname, navigate, clearAutoPlayTimers, id],
+    [location.search, location.pathname, navigate, applyEpisodeState],
   );
 
   // ✅ Navigate to previous episode
   const handlePrevEpisode = useCallback(() => {
-    const currentIndex = getCurrentEpisodeIndex();
-    if (currentIndex > 0) {
-      const prevEp = item.episodes[0].server_data[currentIndex - 1];
+    if (currentEpisodeIndex > 0) {
+      const prevEp = episodeList[currentEpisodeIndex - 1];
       handleSelectEpisode(prevEp);
     }
-  }, [getCurrentEpisodeIndex, item, handleSelectEpisode]);
+  }, [currentEpisodeIndex, episodeList, handleSelectEpisode]);
 
   // ✅ Navigate to next episode
   const handleNextEpisode = useCallback(() => {
-    const currentIndex = getCurrentEpisodeIndex();
     if (
-      currentIndex !== -1 &&
-      currentIndex < item.episodes[0].server_data.length - 1
+      currentEpisodeIndex !== -1 &&
+      currentEpisodeIndex < episodeList.length - 1
     ) {
-      const nextEp = item.episodes[0].server_data[currentIndex + 1];
+      const nextEp = episodeList[currentEpisodeIndex + 1];
       handleSelectEpisode(nextEp);
     }
-  }, [getCurrentEpisodeIndex, item, handleSelectEpisode]);
+  }, [currentEpisodeIndex, episodeList, handleSelectEpisode]);
 
   // ✅ Cancel auto-play
   const handleCancelAutoPlay = useCallback(() => {
@@ -282,75 +288,6 @@ const Detail = () => {
     }
   }, []);
 
-  // ✅ Initialize HLS player for m3u8 videos - Fetch link on demand
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !currentEp?.slug) return;
-
-    // Fetch episode link on demand
-    const loadVideoSource = async () => {
-      try {
-        const episodeLink = await getEpisodeLink(id, currentEp.name);
-        
-        // Cleanup previous HLS instance
-        if (hlsRef.current) {
-          hlsRef.current.destroy();
-        }
-
-        const sourceUrl = episodeLink.playlistUrl || episodeLink.link_m3u8;
-
-        if (!sourceUrl && !episodeLink.link_embed) {
-          console.error('No video link available');
-          return;
-        }
-
-        if (sourceUrl && Hls.isSupported()) {
-          const hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-          });
-
-          hls.loadSource(sourceUrl);
-          hls.attachMedia(video);
-
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            video.play().catch((err) => console.log("Auto-play prevented:", err));
-          });
-
-          hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-              console.error("HLS Error:", data);
-            }
-          });
-
-          hlsRef.current = hls;
-        } else if (sourceUrl && video.canPlayType("application/vnd.apple.mpegurl")) {
-          // Native HLS support (Safari)
-          video.src = sourceUrl;
-          video.addEventListener("loadedmetadata", () => {
-            video.play().catch((err) => console.log("Auto-play prevented:", err));
-          });
-        } else if (episodeLink.link_embed) {
-          video.src = episodeLink.link_embed;
-          video.addEventListener("loadedmetadata", () => {
-            video.play().catch((err) => console.log("Auto-play prevented:", err));
-          });
-        }
-      } catch (error) {
-        console.error('Error loading video source:', error);
-      }
-    };
-
-    loadVideoSource();
-
-    return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-    };
-  }, [currentEp, id]);
-
   // ✅ Auto-play next episode when video is near end
   useEffect(() => {
     const video = videoRef.current;
@@ -370,7 +307,7 @@ const Detail = () => {
             if (video && currentEp && item) {
               saveWatchProgress(
                 id,
-                currentEp.name,
+                getEpisodeProgressKey(currentEp),
                 video.currentTime,
                 video.duration,
                 {
@@ -390,10 +327,9 @@ const Detail = () => {
         !hasTriggeredAutoPlay &&
         autoPlayEnabled
       ) {
-        const currentIndex = getCurrentEpisodeIndex();
         if (
-          currentIndex !== -1 &&
-          currentIndex < item?.episodes?.[0]?.server_data?.length - 1
+          currentEpisodeIndex !== -1 &&
+          currentEpisodeIndex < episodeList.length - 1
         ) {
           hasTriggeredAutoPlay = true;
 
@@ -418,11 +354,10 @@ const Detail = () => {
     };
 
     const handleVideoEnded = () => {
-      const currentIndex = getCurrentEpisodeIndex();
       if (
         autoPlayEnabled &&
-        currentIndex !== -1 &&
-        currentIndex < item?.episodes?.[0]?.server_data?.length - 1
+        currentEpisodeIndex !== -1 &&
+        currentEpisodeIndex < episodeList.length - 1
       ) {
         // Tự động phát tập tiếp theo ngay lập tức khi video kết thúc
         handleNextEpisode();
@@ -449,51 +384,10 @@ const Detail = () => {
     autoPlayEnabled,
     id,
     poster_url,
+    episodeList,
+    currentEpisodeIndex,
     clearAutoPlayTimers,
-    getCurrentEpisodeIndex,
     handleNextEpisode,
-  ]);
-
-  // ✅ Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      // Ignore if user is typing in an input
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-        return;
-      }
-
-      // Plain arrow keys are owned by the video player for 10-second seeking.
-      switch (e.key) {
-        case "ArrowLeft":
-          if (!e.altKey) break;
-          e.preventDefault();
-          handlePrevEpisode();
-          break;
-        case "ArrowRight":
-          if (!e.altKey) break;
-          e.preventDefault();
-          handleNextEpisode();
-          break;
-        case "Escape":
-          if (showAutoPlayNotice) {
-            e.preventDefault();
-            handleCancelAutoPlay();
-          }
-          break;
-        default:
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [
-    currentEp,
-    item,
-    showAutoPlayNotice,
-    handleCancelAutoPlay,
-    handleNextEpisode,
-    handlePrevEpisode,
   ]);
 
   // Get absolute image URL for social sharing
@@ -558,7 +452,7 @@ const Detail = () => {
             <link rel="icon" href="/logo.png" />
             <link
               rel="canonical"
-              href={`${window.location.origin}/movie/${id}${currentEp ? `?ep=${currentEp.name}` : ""}`}
+              href={`${window.location.origin}/movie/${id}${currentEp ? `?ep=${getEpisodeIdentity(currentEp)}` : ""}`}
             />
 
             {/* Open Graph */}
@@ -660,7 +554,10 @@ const Detail = () => {
             <div className="section mb-3">
               <div className="watch-section">
                 <div className="video-player">
-                  <div className="video-wrapper">
+                  <div
+                    className="video-wrapper"
+                    data-playback-error={playbackError || undefined}
+                  >
                     {item.episode_current === "Trailer" ? (
                       <iframe
                         src={videoSource}
@@ -673,150 +570,157 @@ const Detail = () => {
                         videoRef={videoRef}
                         title={item.title || item.name}
                         episodeName={currentEp?.name}
+                        episodeGroupTitle={currentEp?.episodeGroupTitle}
                       />
                     )}
                   </div>
+                  {playbackError && (
+                    <p className="playback-error" role="alert">
+                      {playbackError}
+                    </p>
+                  )}
                 </div>
 
-                {item.episode_current !== "Trailer" && item.episodes && (
-                  <>
-                    {/* Auto-play Toggle */}
-                    <div className="autoplay-toggle-container">
-                      <label className="autoplay-toggle">
-                        <input
-                          type="checkbox"
-                          checked={autoPlayEnabled}
-                          onChange={handleToggleAutoPlay}
-                        />
-                        <span className="toggle-slider"></span>
-                        <span className="toggle-label">
-                          <i className="bx bx-play-circle"></i>
-                          Tự động phát tập tiếp theo
-                        </span>
-                      </label>
-                    </div>
-
-                    {/* Next/Prev Episode Navigation */}
-                    <div className="episode-navigation">
-                      <button
-                        className="episode-nav-btn prev"
-                        onClick={handlePrevEpisode}
-                        disabled={getCurrentEpisodeIndex() <= 0}
-                      >
-                        <i className="bx bx-chevron-left"></i>
-                        <span>Tập trước</span>
-                      </button>
-
-                      <div className="current-episode-info">
-                        <span className="episode-label">Đang xem:</span>
-                        <span className="episode-number">
-                          {currentEpisodeDisplayName}
-                        </span>
+                {item.episode_current !== "Trailer" &&
+                  episodeList.length > 0 && (
+                    <>
+                      {/* Auto-play Toggle */}
+                      <div className="autoplay-toggle-container">
+                        <label className="autoplay-toggle">
+                          <input
+                            type="checkbox"
+                            checked={autoPlayEnabled}
+                            onChange={handleToggleAutoPlay}
+                          />
+                          <span className="toggle-slider"></span>
+                          <span className="toggle-label">
+                            <i className="bx bx-play-circle"></i>
+                            Tự động phát tập tiếp theo
+                          </span>
+                        </label>
                       </div>
 
-                      <button
-                        className="episode-nav-btn next"
-                        onClick={handleNextEpisode}
-                        disabled={
-                          getCurrentEpisodeIndex() === -1 ||
-                          getCurrentEpisodeIndex() >=
-                            item.episodes[0].server_data.length - 1
-                        }
-                      >
-                        <span>Tập tiếp</span>
-                        <i className="bx bx-chevron-right"></i>
-                      </button>
-                    </div>
+                      {/* Next/Prev Episode Navigation */}
+                      <div className="episode-navigation">
+                        <button
+                          className="episode-nav-btn prev"
+                          onClick={handlePrevEpisode}
+                          disabled={currentEpisodeIndex <= 0}
+                        >
+                          <i className="bx bx-chevron-left"></i>
+                          <span>Tập trước</span>
+                        </button>
 
-                    {/* Auto-play Notice */}
-                    {showAutoPlayNotice && autoPlayCountdown !== null && (
-                      <div className="autoplay-notice">
-                        <div className="autoplay-content">
-                          <i className="bx bx-play-circle"></i>
-                          <div className="autoplay-text">
-                            <p className="autoplay-title">
-                              Tự động phát tập tiếp theo
-                            </p>
-                            <p className="autoplay-countdown">
-                              {formatEpisodeDisplayName(
-                                item.episodes[0].server_data[
-                                  getCurrentEpisodeIndex() + 1
-                                ]?.name,
-                              )}{" "}
-                              sẽ phát sau {autoPlayCountdown} giây
-                            </p>
-                          </div>
-                          <button
-                            className="autoplay-cancel"
-                            onClick={handleCancelAutoPlay}
-                          >
-                            <i className="bx bx-x"></i>
-                            Hủy
-                          </button>
+                        <div className="current-episode-info">
+                          <span className="episode-label">Đang xem:</span>
+                          <span className="episode-number">
+                            {currentEpisodeDisplayName}
+                          </span>
                         </div>
-                        <div className="autoplay-progress">
-                          <div
-                            className="autoplay-progress-bar"
-                            style={{
-                              width: `${((10 - autoPlayCountdown) / 10) * 100}%`,
-                            }}
-                          ></div>
-                        </div>
+
+                        <button
+                          className="episode-nav-btn next"
+                          onClick={handleNextEpisode}
+                          disabled={
+                            currentEpisodeIndex === -1 ||
+                            currentEpisodeIndex >= episodeList.length - 1
+                          }
+                        >
+                          <span>Tập tiếp</span>
+                          <i className="bx bx-chevron-right"></i>
+                        </button>
                       </div>
-                    )}
 
-                    {/* Continue Watching Notice */}
-                    {showContinueWatching && savedProgress && (
-                      <div className="continue-watching-notice">
-                        <div className="continue-watching-content">
-                          <i className="bx bx-time-five"></i>
-                          <div className="continue-watching-text">
-                            <p className="continue-watching-title">
-                              Tiếp tục xem từ{" "}
-                              {formatTime(savedProgress.currentTime)}?
-                            </p>
-                            <p className="continue-watching-info">
-                              Bạn đã xem đến{" "}
-                              {Math.round(savedProgress.percentage)}% của tập
-                              này
-                            </p>
-                          </div>
-                          <div className="continue-watching-actions">
+                      {/* Auto-play Notice */}
+                      {showAutoPlayNotice && autoPlayCountdown !== null && (
+                        <div className="autoplay-notice">
+                          <div className="autoplay-content">
+                            <i className="bx bx-play-circle"></i>
+                            <div className="autoplay-text">
+                              <p className="autoplay-title">
+                                Tự động phát tập tiếp theo
+                              </p>
+                              <p className="autoplay-countdown">
+                                {formatEpisodeDisplayName(
+                                  episodeList[currentEpisodeIndex + 1]?.name,
+                                )}{" "}
+                                sẽ phát sau {autoPlayCountdown} giây
+                              </p>
+                            </div>
                             <button
-                              className="continue-btn"
-                              onClick={handleContinueWatching}
+                              className="autoplay-cancel"
+                              onClick={handleCancelAutoPlay}
                             >
-                              <i className="bx bx-play"></i>
-                              Tiếp tục
-                            </button>
-                            <button
-                              className="restart-btn"
-                              onClick={handleStartFromBeginning}
-                            >
-                              <i className="bx bx-revision"></i>
-                              Xem lại từ đầu
+                              <i className="bx bx-x"></i>
+                              Hủy
                             </button>
                           </div>
+                          <div className="autoplay-progress">
+                            <div
+                              className="autoplay-progress-bar"
+                              style={{
+                                width: `${((10 - autoPlayCountdown) / 10) * 100}%`,
+                              }}
+                            ></div>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    <EpisodeScroll
-                      episodes={item.episodes[0].server_data}
-                      currentEpisode={currentEp}
-                      onSelectEpisode={handleSelectEpisode}
-                    />
-                  </>
-                )}
+                      {/* Continue Watching Notice */}
+                      {showContinueWatching && savedProgress && (
+                        <div className="continue-watching-notice">
+                          <div className="continue-watching-content">
+                            <i className="bx bx-time-five"></i>
+                            <div className="continue-watching-text">
+                              <p className="continue-watching-title">
+                                Tiếp tục xem từ{" "}
+                                {formatTime(savedProgress.currentTime)}?
+                              </p>
+                              <p className="continue-watching-info">
+                                Bạn đã xem đến{" "}
+                                {Math.round(savedProgress.percentage)}% của tập
+                                này
+                              </p>
+                            </div>
+                            <div className="continue-watching-actions">
+                              <button
+                                className="continue-btn"
+                                onClick={handleContinueWatching}
+                              >
+                                <i className="bx bx-play"></i>
+                                Tiếp tục
+                              </button>
+                              <button
+                                className="restart-btn"
+                                onClick={handleStartFromBeginning}
+                              >
+                                <i className="bx bx-revision"></i>
+                                Xem lại từ đầu
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <EpisodeScroll
+                        episodes={episodeList}
+                        episodeGroups={episodeGroups}
+                        currentEpisode={currentEp}
+                        onSelectEpisode={handleSelectEpisode}
+                      />
+                    </>
+                  )}
               </div>
             </div>
 
-            <div className="section mb-3">
-              <div className="section__header mb-2">
-                <h2>Tương tự</h2>
+            {showSecondaryContent && (
+              <div className="section mb-3">
+                <div className="section__header mb-2">
+                  <h2>Tương tự</h2>
+                </div>
+                <SimilarMovies movie={item} />
               </div>
-              <SimilarMovies movie={item} />
-            </div>
+            )}
           </div>
         </>
       )}
