@@ -138,7 +138,7 @@ const RankingSection = ({ title, movies, icon, type }) => {
         <Swiper
           modules={[Navigation, Pagination, Autoplay]}
           spaceBetween={20}
-          slidesPerView={1}
+          slidesPerView="auto"
           navigation={{
             nextEl: `.swiper-button-next-${title.replace(/\s+/g, "-")}`,
             prevEl: `.swiper-button-prev-${title.replace(/\s+/g, "-")}`,
@@ -153,19 +153,19 @@ const RankingSection = ({ title, movies, icon, type }) => {
           }}
           breakpoints={{
             640: {
-              slidesPerView: 2,
+              slidesPerView: "auto",
               spaceBetween: 15,
             },
             768: {
-              slidesPerView: 3,
+              slidesPerView: "auto",
               spaceBetween: 20,
             },
             1024: {
-              slidesPerView: 4,
+              slidesPerView: "auto",
               spaceBetween: 20,
             },
             1280: {
-              slidesPerView: 5,
+              slidesPerView: "auto",
               spaceBetween: 20,
             },
           }}

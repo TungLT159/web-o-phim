@@ -210,6 +210,34 @@
   padding: 1rem 0 3rem;
   position: relative;
 
+  .swiper-slide {
+    width: 100%;
+  }
+
+  @media (min-width: 640px) {
+    .swiper-slide {
+      width: calc(50% - 7.5px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .swiper-slide {
+      width: calc(33.333333% - 13.333333px);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .swiper-slide {
+      width: calc(25% - 15px);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .swiper-slide {
+      width: calc(20% - 16px);
+    }
+  }
+
   .swiper-pagination {
     bottom: 0;
 

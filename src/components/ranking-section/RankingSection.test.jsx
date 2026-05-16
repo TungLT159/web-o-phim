@@ -10,8 +10,14 @@ import { fetchTMDBImages } from "../../utils/tmdbImageFetcher";
 jest.mock(
   "swiper/react",
   () => ({
-    Swiper: ({ children, className }) => (
-      <div className={className ? `swiper ${className}` : "swiper"}>{children}</div>
+    Swiper: ({ children, className, breakpoints, slidesPerView }) => (
+      <div
+        className={className ? `swiper ${className}` : "swiper"}
+        data-breakpoints={JSON.stringify(breakpoints)}
+        data-slides-per-view={slidesPerView}
+      >
+        {children}
+      </div>
     ),
     SwiperSlide: ({ children }) => <div className="swiper-slide">{children}</div>,
   }),
@@ -74,6 +80,45 @@ test("ranking skeleton breakpoints mirror Swiper slidesPerView", () => {
   expectSkeletonBreakpoint(rankingSectionStyles, 768, 3, 4);
   expectSkeletonBreakpoint(rankingSectionStyles, 1024, 4, 5);
   expectSkeletonBreakpoint(rankingSectionStyles, 1280, 5, 6);
+});
+
+test("ranking carousel uses auto poster widths to fill the viewport", async () => {
+  fetchTMDBImages.mockResolvedValue({ posterUrl: "/poster.jpg" });
+
+  renderRankingSection({ movies });
+
+  expect(await screen.findByText("First")).toBeInTheDocument();
+  expect(document.querySelector(".ranking-slider")).toHaveAttribute(
+    "data-slides-per-view",
+    "auto",
+  );
+  expect(rankingSectionStyles).toMatch(
+    /\.ranking-slider\s*\{[\s\S]*?\.swiper-slide\s*\{[\s\S]*?width:\s*calc\(20% - 16px\)/,
+  );
+});
+
+test("ranking slide width CSS avoids unsupported calc multiplication and division", () => {
+  expect(rankingSectionStyles).not.toMatch(
+    /\.ranking-slider[\s\S]*?width:\s*calc\([^;]*[*/][^;]*\)/,
+  );
+});
+
+test("ranking carousel keeps auto slide sizing at every breakpoint", async () => {
+  fetchTMDBImages.mockResolvedValue({ posterUrl: "/poster.jpg" });
+
+  renderRankingSection({ movies });
+
+  expect(await screen.findByText("First")).toBeInTheDocument();
+
+  const breakpoints = JSON.parse(
+    document.querySelector(".ranking-slider").dataset.breakpoints,
+  );
+  expect(breakpoints).toMatchObject({
+    640: { slidesPerView: "auto" },
+    768: { slidesPerView: "auto" },
+    1024: { slidesPerView: "auto" },
+    1280: { slidesPerView: "auto" },
+  });
 });
 
 test("reserves ranking card space while movie images are loading", () => {
