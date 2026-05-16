@@ -6,6 +6,7 @@
     position: relative;
     z-index: 1;
     overflow: hidden;
+    min-height: 85vh;
 
     // Custom Swiper navigation buttons
     .swiper-button-prev,
@@ -114,10 +115,12 @@
 
     @include tablet {
         margin-bottom: 3rem;
+        min-height: 70vh;
     }
 
     @include mobile {
         margin-bottom: 2rem;
+        min-height: 60vh;
     }
 }
 
@@ -409,6 +412,7 @@
 @media (min-width: 1920px) {
     .hero-slide {
         margin-bottom: 5rem;
+        min-height: 90vh;
 
         .swiper-button-prev,
         .swiper-button-next {
@@ -539,6 +543,10 @@
 
 /* ================= TABLET PORTRAIT (600px - 767px) ================= */
 @media (min-width: 600px) and (max-width: 767px) {
+    .hero-slide {
+        min-height: 65vh;
+    }
+
     .hero-slide__item {
         padding: 9rem 0 5.5rem;
         min-height: 65vh;
@@ -563,6 +571,7 @@
 @media (max-width: 479px) {
     .hero-slide {
         margin-bottom: 1.5rem;
+        min-height: 55vh;
 
         .swiper-button-prev,
         .swiper-button-next {

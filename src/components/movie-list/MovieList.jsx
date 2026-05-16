@@ -14,29 +14,50 @@ import MovieCard from "../movie-card/MovieCard";
 
 const MovieList = (props) => {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const showPlaceholders = loading || items.length === 0;
 
   /**
    * Lấy danh sách phim
    */
   useEffect(() => {
-    const getList = async () => {
-      let response = null;
-      const params = {};
+    let isMounted = true;
 
-      if (props.type !== "similar") {
-        response = await tmdbApi.getMoviesList(props.type, { params });
-      } else {
-        // console.log(props.category);
-        response = await tmdbApi.getListByType(props.category);
+    const getList = async () => {
+      setLoading(true);
+
+      try {
+        let response = null;
+        const params = {};
+
+        if (props.type !== "similar") {
+          response = await tmdbApi.getMoviesList(props.type, { params });
+        } else {
+          // console.log(props.category);
+          response = await tmdbApi.getListByType(props.category);
+        }
+
+        if (isMounted) {
+          setItems(response.data.items || []);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      // console.log(response);
-      setItems(response.data.items);
     };
     getList();
+
+    return () => {
+      isMounted = false;
+    };
   }, [props.type, props.category]);
 
   return (
-    <div className="movie-list">
+    <div
+      className={`movie-list${loading ? " movie-list--loading" : ""}${!loading && items.length === 0 ? " movie-list--empty" : ""}`}
+      data-testid="movie-list-carousel"
+    >
       <Swiper
         modules={[Autoplay]}
         grabCursor={true}
@@ -44,11 +65,23 @@ const MovieList = (props) => {
         slidesPerView={"auto"}
         autoplay={{ delay: 4000 }}
       >
-        {items.map((item, i) => (
-          <SwiperSlide key={i}>
-            <MovieCard item={item} category={props.category} />
-          </SwiperSlide>
-        ))}
+        {showPlaceholders
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <SwiperSlide key={`movie-list-skeleton-${i}`}>
+                <div
+                  className="movie-list__skeleton-card"
+                  data-testid="movie-list-skeleton-card"
+                >
+                  <div className="movie-list__skeleton-poster" />
+                  <div className="movie-list__skeleton-title" />
+                </div>
+              </SwiperSlide>
+            ))
+          : items.map((item, i) => (
+              <SwiperSlide key={item.slug || item.id || i}>
+                <MovieCard item={item} category={props.category} />
+              </SwiperSlide>
+            ))}
       </Swiper>
     </div>
   );

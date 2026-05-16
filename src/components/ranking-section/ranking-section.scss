@@ -71,6 +71,126 @@
       font-size: 0.95rem;
     }
   }
+
+  &__loading-slider {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0.75rem 0 2.5rem;
+
+    .ranking-section__skeleton-card:nth-child(n + 2) {
+      display: none;
+    }
+
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+      padding: 1rem 0 3rem;
+
+      .ranking-section__skeleton-card {
+        display: block;
+      }
+
+      .ranking-section__skeleton-card:nth-child(n + 3) {
+        display: none;
+      }
+    }
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+
+      .ranking-section__skeleton-card {
+        display: block;
+      }
+
+      .ranking-section__skeleton-card:nth-child(n + 4) {
+        display: none;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+
+      .ranking-section__skeleton-card {
+        display: block;
+      }
+
+      .ranking-section__skeleton-card:nth-child(n + 5) {
+        display: none;
+      }
+    }
+
+    @media (min-width: 1280px) {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+
+      .ranking-section__skeleton-card {
+        display: block;
+      }
+
+      .ranking-section__skeleton-card:nth-child(n + 6) {
+        display: none;
+      }
+    }
+  }
+
+  &__skeleton-card {
+    overflow: hidden;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    opacity: 0.75;
+  }
+
+  &__skeleton-poster,
+  &__skeleton-title,
+  &__skeleton-meta {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        110deg,
+        transparent 0%,
+        transparent 40%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 60%,
+        transparent 100%
+      );
+      transform: translateX(-100%);
+      animation: shimmer 3s infinite;
+    }
+  }
+
+  &__skeleton-poster {
+    aspect-ratio: 2/3;
+    background: #000;
+  }
+
+  &__skeleton-info {
+    padding: 1rem;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.6) 0%,
+      rgba(0, 0, 0, 0.8) 100%
+    );
+  }
+
+  &__skeleton-title {
+    height: 2.6em;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+  }
+
+  &__skeleton-meta {
+    width: 70%;
+    height: 0.9rem;
+    border-radius: 999px;
+  }
 }
 
 .ranking-slider-wrapper {

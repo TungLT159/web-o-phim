@@ -11,9 +11,29 @@ const RankingSection = ({ title, movies, icon, type }) => {
   const [moviesWithImages, setMoviesWithImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const renderSkeletonCards = () =>
+    Array.from({ length: 5 }).map((_, index) => (
+      <div
+        className="ranking-section__skeleton-card"
+        data-testid="ranking-skeleton-card"
+        key={`ranking-skeleton-${index}`}
+      >
+        <div className="ranking-section__skeleton-poster" />
+        <div className="ranking-section__skeleton-info">
+          <div className="ranking-section__skeleton-title" />
+          <div className="ranking-section__skeleton-meta" />
+        </div>
+      </div>
+    ));
+
   useEffect(() => {
+    let isMounted = true;
+
     const loadMoviesData = async () => {
+      setLoading(true);
+
       if (!movies || movies.length === 0) {
+        setMoviesWithImages([]);
         setLoading(false);
         return;
       }
@@ -45,15 +65,23 @@ const RankingSection = ({ title, movies, icon, type }) => {
           }),
         );
 
-        setMoviesWithImages(moviesData);
+        if (isMounted) {
+          setMoviesWithImages(moviesData);
+        }
       } catch (error) {
         console.error("Error loading movies data:", error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadMoviesData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [movies]);
 
   const getRankClass = (rank) => {
@@ -70,18 +98,25 @@ const RankingSection = ({ title, movies, icon, type }) => {
     return rank;
   };
 
-  if (loading) {
+  if (loading || moviesWithImages.length === 0) {
     return (
       <div className="ranking-section">
         <div className="ranking-section__header">
-          <h2>
-            <i className={icon}></i>
-            {title}
-          </h2>
+          <div className="header-left">
+            <h2>
+              <i className={icon}></i>
+              {title}
+            </h2>
+            <span className="ranking-type">{type}</span>
+          </div>
         </div>
-        <div className="ranking-section__loading">
-          <div className="spinner"></div>
-          <p>Đang tải...</p>
+        <div className="ranking-slider-wrapper">
+          <div
+            className="ranking-section__loading-slider"
+            data-testid="ranking-slider-placeholder"
+          >
+            {renderSkeletonCards()}
+          </div>
         </div>
       </div>
     );

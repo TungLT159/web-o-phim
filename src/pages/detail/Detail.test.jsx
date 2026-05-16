@@ -88,6 +88,26 @@ beforeEach(() => {
   tmdbApi.episode.mockResolvedValue({ playlistUrl: "/video.m3u8" });
 });
 
+test("reserves the detail layout while movie data is loading", () => {
+  tmdbApi.detail.mockImplementation(() => new Promise(() => {}));
+
+  const { container } = render(
+    <MemoryRouter
+      initialEntries={["/movie/test-movie"]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route path="/:category/:id" element={<Detail />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByRole("status", { name: "Đang tải phim" })).toBeInTheDocument();
+  expect(container.querySelector(".banner")).toBeInTheDocument();
+  expect(container.querySelector(".movie-content")).toBeInTheDocument();
+  expect(container.querySelector(".video-wrapper")).toBeInTheDocument();
+});
+
 test("saved progress prefers group-aware episode keys over legacy episode names", async () => {
   localStorage.setItem(
     "ophim_watch_history",
