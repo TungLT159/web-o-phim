@@ -27,8 +27,8 @@ const CastList = (props) => {
           prevEl: ".casts-button-prev",
         }}
       >
-        {casts.map((item, i) => (
-          <SwiperSlide key={i}>
+        {casts.map((item) => (
+          <SwiperSlide key={`${item.id ?? item.tmdb_id ?? item.name}-${item.profile_path ?? "no-profile"}`}>
             <div className="casts__item" style={{ textAlign: "center" }}>
               <div
                 className="casts__item__img"

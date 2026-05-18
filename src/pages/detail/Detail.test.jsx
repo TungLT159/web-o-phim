@@ -110,7 +110,7 @@ test("reserves the detail layout while movie data is loading", () => {
 
 test("saved progress prefers group-aware episode keys over legacy episode names", async () => {
   localStorage.setItem(
-    "ophim_watch_history",
+    "ophim_watch_history:v1",
     JSON.stringify([
       {
         key: "test-movie_0:tap-1",
@@ -186,7 +186,7 @@ test("defers similar movies until after the critical video area renders", async 
 
 test("URL episode changes load saved progress for the new episode", async () => {
   localStorage.setItem(
-    "ophim_watch_history",
+    "ophim_watch_history:v1",
     JSON.stringify([
       {
         key: "test-movie_2",

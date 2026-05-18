@@ -1,35 +1,36 @@
 import { useEffect, useState } from "react";
+import axiosClient from "../../api/axiosClient";
 
 function TrailerByName({ movieName }) {
   const [trailerUrl, setTrailerUrl] = useState("");
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function fetchTrailer() {
       try {
         // 1. Tìm phim theo tên
-        const searchRes = await fetch(
+        const searchData = await axiosClient.get(
           `https://api.themoviedb.org/3/search/movie?api_key=${process.env.REACT_APP_TMDB_API_KEY}&query=${encodeURIComponent(
-            movieName
-          )}&language=en-US`
+            movieName,
+          )}&language=en-US`,
         );
-        const searchData = await searchRes.json();
 
-        if (searchData.results.length === 0) return;
+        if (isCancelled || searchData.results.length === 0) return;
 
         // Lấy id của phim đầu tiên
         const movieId = searchData.results[0].id;
 
         // 2. Lấy video (trailer) của phim đó
-        const videosRes = await fetch(
-          `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${process.env.REACT_APP_TMDB_API_KEY}&language=en-US`
+        const videosData = await axiosClient.get(
+          `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${process.env.REACT_APP_TMDB_API_KEY}&language=en-US`,
         );
-        const videosData = await videosRes.json();
 
         const trailer = videosData.results.find(
-          (vid) => vid.type === "Trailer" && vid.site === "YouTube"
+          (vid) => vid.type === "Trailer" && vid.site === "YouTube",
         );
 
-        if (trailer) {
+        if (trailer && !isCancelled) {
           setTrailerUrl(`https://www.youtube.com/embed/${trailer.key}`);
         }
       } catch (error) {
@@ -38,6 +39,9 @@ function TrailerByName({ movieName }) {
     }
 
     fetchTrailer();
+    return () => {
+      isCancelled = true;
+    };
   }, [movieName]);
 
   return trailerUrl ? (

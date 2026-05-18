@@ -3,7 +3,8 @@
  * Quản lý lịch sử xem phim trong localStorage
  */
 
-const WATCH_HISTORY_KEY = 'ophim_watch_history';
+const WATCH_HISTORY_KEY = 'ophim_watch_history:v1';
+const LEGACY_WATCH_HISTORY_KEY = 'ophim_watch_history';
 const MAX_HISTORY_ITEMS = 100; // Giới hạn số lượng phim lưu
 
 /**
@@ -12,7 +13,7 @@ const MAX_HISTORY_ITEMS = 100; // Giới hạn số lượng phim lưu
  */
 export const getWatchHistory = () => {
   try {
-    const history = localStorage.getItem(WATCH_HISTORY_KEY);
+    const history = localStorage.getItem(WATCH_HISTORY_KEY) || localStorage.getItem(LEGACY_WATCH_HISTORY_KEY);
     return history ? JSON.parse(history) : [];
   } catch (error) {
     console.error('Error getting watch history:', error);
@@ -109,6 +110,7 @@ export const removeWatchProgress = (movieId, episodeName) => {
 export const clearWatchHistory = () => {
   try {
     localStorage.removeItem(WATCH_HISTORY_KEY);
+    localStorage.removeItem(LEGACY_WATCH_HISTORY_KEY);
   } catch (error) {
     console.error('Error clearing watch history:', error);
   }

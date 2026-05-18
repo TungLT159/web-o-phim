@@ -166,8 +166,8 @@ const SimilarMovies = ({ movie }) => {
         slidesPerView={"auto"}
         autoplay={{ delay: 4000 }}
       >
-        {items.map((item, i) => (
-          <SwiperSlide key={i}>
+        {items.map((item) => (
+          <SwiperSlide key={item._id ?? item.slug}>
             <MovieCard item={item} category={item.category?.[0]?.slug} />
           </SwiperSlide>
         ))}

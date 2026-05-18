@@ -21,8 +21,8 @@ const VideoList = props => {
     return (
         <>
             {
-                videos.map((item, i) => (
-                    <Video key={i} item={item} />
+                videos.map((item) => (
+                    <Video key={item.id ?? item.key} item={item} />
                 ))
             }
         </>

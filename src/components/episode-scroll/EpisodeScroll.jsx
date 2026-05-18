@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatEpisodeDisplayName } from "../../utils/episodeDisplayName";
 import "./episode-scroll.scss";
 
@@ -8,16 +8,18 @@ const DEFAULT_VISIBLE_ROWS = 6;
 const EPISODE_ROW_HEIGHT = 60;
 const EPISODE_ROW_GAP = 12;
 const VIRTUAL_OVERSCAN_ROWS = 2;
+const EMPTY_EPISODES = [];
+const NOOP = () => {};
 
 const getEpisodeIdentity = (episode) =>
   episode?.episodeKey ||
   `${episode?.episodeGroupTitle || ""}:${episode?.slug || episode?.name || ""}`;
 
 const EpisodeScroll = ({
-  episodes,
-  episodeGroups = [],
+  episodes = EMPTY_EPISODES,
+  episodeGroups = EMPTY_EPISODES,
   currentEpisode,
-  onSelectEpisode,
+  onSelectEpisode = NOOP,
 }) => {
   const scrollContainerRef = useRef(null);
   const episodeListRef = useRef(null);
@@ -43,18 +45,19 @@ const EpisodeScroll = ({
   const activeGroup = episodeGroups[activeGroupIndex];
   const currentEpisodeKey = getEpisodeIdentity(currentEpisode);
 
-  useEffect(() => {
-    if (hasGroups) {
-      setActiveGroupIndex(currentGroupIndex);
-    }
-  }, [currentGroupIndex, hasGroups]);
-
-  useEffect(() => {
+  const resetEpisodeScroll = useCallback(() => {
     setVirtualScrollTop(0);
     if (episodeListRef.current) {
       episodeListRef.current.scrollTop = 0;
     }
-  }, [activeGroupIndex]);
+  }, []);
+
+  useEffect(() => {
+    if (hasGroups) {
+      setActiveGroupIndex(currentGroupIndex);
+      resetEpisodeScroll();
+    }
+  }, [currentGroupIndex, hasGroups, resetEpisodeScroll]);
 
   useEffect(() => {
     const listElement = episodeListRef.current;
@@ -112,15 +115,18 @@ const EpisodeScroll = ({
         }
 
         // Scroll đến tập đang phát
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           episodeRefs.current[currentIndex]?.scrollIntoView?.({
             behavior: "smooth",
             block: "nearest",
             inline: "center",
           });
         }, 100);
+
+        return () => clearTimeout(timeoutId);
       }
     }
+    return undefined;
   }, [
     currentEpisode,
     currentEpisodeKey,
@@ -351,7 +357,10 @@ const EpisodeScroll = ({
                   role="tab"
                   className={`episode-tab ${isActive ? "active" : ""}`}
                   aria-selected={isActive ? "true" : "false"}
-                  onClick={() => setActiveGroupIndex(groupIndex)}
+                  onClick={() => {
+                    setActiveGroupIndex(groupIndex);
+                    resetEpisodeScroll();
+                  }}
                 >
                   <span className="episode-tab__title">{group.title}</span>
                   <span className="episode-tab__count">

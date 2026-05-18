@@ -40,8 +40,8 @@ const HeroSlide = () => {
         slidesPerView={1}
         autoplay={{ delay: 8000 }}
       >
-        {movieItems.map((item, i) => (
-          <SwiperSlide key={i}>
+        {movieItems.map((item) => (
+          <SwiperSlide key={item._id ?? item.slug}>
             {({ isActive }) => (
               <HeroSlideItem
                 item={item}
@@ -51,8 +51,8 @@ const HeroSlide = () => {
           </SwiperSlide>
         ))}
       </Swiper>
-      {movieItems.map((item, i) => (
-        <TrailerModal key={i} item={item} />
+      {movieItems.map((item) => (
+        <TrailerModal key={item._id ?? item.slug} item={item} />
       ))}
     </div>
   );
@@ -138,7 +138,7 @@ const HeroSlideItem = (props) => {
   };
 
   const setModalActive = async () => {
-    const modal = document.querySelector(`#modal_${item.id}`);
+    const modal = document.querySelector(`#modal_${item._id ?? item.slug}`);
     const modalContent = modal.querySelector(".modal__content");
 
     // Hiển thị loading
@@ -263,7 +263,7 @@ const TrailerModal = (props) => {
   const onClose = () => iframeRef.current.setAttribute("src", "");
 
   return (
-    <Modal active={false} id={`modal_${item.id}`}>
+    <Modal active={false} id={`modal_${item._id ?? item.slug}`}>
       <ModalContent
         onClose={onClose}
         closeButtonClassName="modal__content__close--floating"

@@ -16,7 +16,7 @@ const PageLoader = () => (
     fontSize: '1.5rem',
     color: '#fff'
   }}>
-    <div>Đang tải...</div>
+    <div>Đang tải…</div>
   </div>
 );
 

@@ -47,7 +47,14 @@ const Modal = props => {
     };
 
     return createPortal(
-        <div ref={modalRef} id={props.id} className={`modal ${active ? 'active' : ''}`}>
+        <div
+            ref={modalRef}
+            id={props.id}
+            className={`modal ${active ? 'active' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-hidden={!active}
+        >
             {props.children}
         </div>,
         document.body,
@@ -79,9 +86,9 @@ export const ModalContent = props => {
     return (
         <div ref={contentRef} className={contentClassName}>
             {props.children}
-            <div className={closeClassName} onClick={closeModal} aria-label="Đóng modal" role="button" tabIndex="0">
-                <i className="bx bx-x"></i>
-            </div>
+            <button type="button" className={closeClassName} onClick={closeModal} aria-label="Đóng modal">
+                <i className="bx bx-x" aria-hidden="true"></i>
+            </button>
         </div>
     );
 }

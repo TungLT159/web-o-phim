@@ -24,6 +24,8 @@ import { getEpisodeIdentity, useEpisodeCatalog } from "./useEpisodeCatalog";
 import { useEpisodePlayback } from "./useEpisodePlayback";
 
 const getEpisodeProgressKey = (episode) => getEpisodeIdentity(episode);
+const AUTO_PLAY_STORAGE_KEY = "autoPlayEnabled:v1";
+const LEGACY_AUTO_PLAY_STORAGE_KEY = "autoPlayEnabled";
 
 const getEpisodeProgressKeysForRead = (episode) => {
   const progressKey = getEpisodeProgressKey(episode);
@@ -47,7 +49,7 @@ const runWhenIdle = (callback) => {
 const Detail = () => {
   const { category, id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const { pathname, search } = useLocation();
 
   const { item, loadError } = useMovieDetail(category, id);
   const [poster_url, setPosterUrl] = useState("/poster-mau.png");
@@ -57,7 +59,9 @@ const Detail = () => {
   const [showAutoPlayNotice, setShowAutoPlayNotice] = useState(false);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(() => {
     // Lấy từ localStorage, mặc định là true
-    const saved = localStorage.getItem("autoPlayEnabled");
+    const saved =
+      localStorage.getItem(AUTO_PLAY_STORAGE_KEY) ??
+      localStorage.getItem(LEGACY_AUTO_PLAY_STORAGE_KEY);
     return saved !== null ? JSON.parse(saved) : true;
   });
 
@@ -72,7 +76,7 @@ const Detail = () => {
   const countdownIntervalRef = useRef(null);
 
   // ✅ Lấy episode từ URL param nếu có
-  const query = new URLSearchParams(location.search);
+  const query = new URLSearchParams(search);
   const epFromUrl = query.get("ep");
   const {
     episodeGroups,
@@ -112,7 +116,7 @@ const Detail = () => {
   const handleToggleAutoPlay = useCallback(() => {
     const newValue = !autoPlayEnabled;
     setAutoPlayEnabled(newValue);
-    localStorage.setItem("autoPlayEnabled", JSON.stringify(newValue));
+    localStorage.setItem(AUTO_PLAY_STORAGE_KEY, JSON.stringify(newValue));
 
     // Nếu tắt auto-play, clear timers hiện tại
     if (!newValue) {
@@ -123,8 +127,8 @@ const Detail = () => {
   // ✅ Memoize genres list
   const genresList = useMemo(() => {
     if (!item?.category) return null;
-    return item.category.slice(0, 5).map((genre, i) => (
-      <span key={i} className="genres__item">
+    return item.category.slice(0, 5).map((genre) => (
+      <span key={genre.slug ?? genre.name} className="genres__item">
         {genre.name}
       </span>
     ));
@@ -140,13 +144,13 @@ const Detail = () => {
         )}
         {item.lang && <span className="tag">Ngôn ngữ: {item.lang}</span>}
         {item.time && <span className="tag">Thời lượng: {item.time}</span>}
-        {item.episode_total && (
+        {item.episode_total != null && (
           <span className="tag">Số tập: {item.episode_total}</span>
         )}
         {item.episode_current && (
           <span className="tag">Tình trạng: {item.episode_current}</span>
         )}
-        {item.year && <span className="tag">Năm: {item.year}</span>}
+        {item.year != null && <span className="tag">Năm: {item.year}</span>}
       </div>
     );
   }, [item]);
@@ -158,13 +162,6 @@ const Detail = () => {
     }
     return null;
   }, [item]);
-
-  const applyEpisodeState = useCallback(
-    (episode) => {
-      selectEpisode(episode);
-    },
-    [selectEpisode],
-  );
 
   useEffect(() => {
     clearAutoPlayTimers();
@@ -220,14 +217,14 @@ const Detail = () => {
   // ✅ Khi chọn tập → cập nhật state và URL
   const handleSelectEpisode = useCallback(
     (ep) => {
-      applyEpisodeState(ep);
+      selectEpisode(ep);
 
       // cập nhật URL param
-      const searchParams = new URLSearchParams(location.search);
+      const searchParams = new URLSearchParams(search);
       searchParams.set("ep", getEpisodeIdentity(ep));
       navigate(
         {
-          pathname: location.pathname,
+          pathname,
           search: searchParams.toString(),
         },
         { replace: true },
@@ -241,7 +238,7 @@ const Detail = () => {
         });
       }
     },
-    [location.search, location.pathname, navigate, applyEpisodeState],
+    [search, pathname, navigate, selectEpisode],
   );
 
   // ✅ Navigate to previous episode

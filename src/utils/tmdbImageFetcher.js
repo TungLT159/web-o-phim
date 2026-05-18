@@ -20,31 +20,31 @@ export const fetchTMDBImages = async (tmdbInfo) => {
     return {
       posterUrl: FALLBACK_POSTER,
       backdropUrl: "",
-      overview: ""
+      overview: "",
     };
   }
 
   try {
     const type = tmdbInfo.type || "movie";
     const response = await axiosClient.get(
-      `https://api.themoviedb.org/3/${type}/${tmdbInfo.id}?api_key=${TMDB_API_KEY}&language=vi-VN`
+      `https://api.themoviedb.org/3/${type}/${tmdbInfo.id}?api_key=${TMDB_API_KEY}&language=vi-VN`,
     );
 
     return {
-      posterUrl: response.poster_path 
+      posterUrl: response.poster_path
         ? apiConfig.w500Image(response.poster_path)
         : FALLBACK_POSTER,
       backdropUrl: response.backdrop_path
         ? apiConfig.w500Image(response.backdrop_path)
         : "",
-      overview: response.overview || ""
+      overview: response.overview || "",
     };
   } catch (error) {
     console.error("Error fetching TMDB images:", error);
     return {
       posterUrl: FALLBACK_POSTER,
       backdropUrl: "",
-      overview: ""
+      overview: "",
     };
   }
 };
@@ -73,27 +73,32 @@ export const fetchTMDBImagesForItems = async (items) => {
         return {
           ...item,
           tmdb_poster: FALLBACK_POSTER,
-          tmdb_backdrop: ""
+          tmdb_backdrop: "",
         };
       }
 
       try {
-        const { posterUrl, backdropUrl, overview } = await fetchTMDBImages(item.tmdb);
+        const { posterUrl, backdropUrl, overview } = await fetchTMDBImages(
+          item.tmdb,
+        );
         return {
           ...item,
           tmdb_poster: posterUrl,
           tmdb_backdrop: backdropUrl,
-          tmdb_overview: overview
+          tmdb_overview: overview,
         };
       } catch (error) {
-        console.error(`Error fetching TMDB image for item ${item.slug}:`, error);
+        console.error(
+          `Error fetching TMDB image for item ${item.slug}:`,
+          error,
+        );
         return {
           ...item,
           tmdb_poster: FALLBACK_POSTER,
-          tmdb_backdrop: ""
+          tmdb_backdrop: "",
         };
       }
-    })
+    }),
   );
 };
 
@@ -120,7 +125,7 @@ export const useTMDBImages = (tmdbInfo) => {
     backdropUrl: "",
     overview: "",
     loading: true,
-    error: null
+    error: null,
   });
 
   useEffect(() => {
@@ -133,7 +138,7 @@ export const useTMDBImages = (tmdbInfo) => {
           backdropUrl: "",
           overview: "",
           loading: false,
-          error: null
+          error: null,
         });
         return;
       }
@@ -144,7 +149,7 @@ export const useTMDBImages = (tmdbInfo) => {
           setState({
             ...result,
             loading: false,
-            error: null
+            error: null,
           });
         }
       } catch (error) {
@@ -154,7 +159,7 @@ export const useTMDBImages = (tmdbInfo) => {
             backdropUrl: "",
             overview: "",
             loading: false,
-            error: error.message
+            error: error.message,
           });
         }
       }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import PageHeader from "../components/page-header/PageHeader";
 import { Helmet } from "react-helmet";
@@ -14,27 +14,17 @@ const typeTitles = {
 
 const Catalog = () => {
   const { category, keyword } = useParams();
-  const location = useLocation();
-  const [title, setTitle] = useState("Danh sách phim");
+  const { pathname } = useLocation();
+  const title = keyword
+    ? `Kết quả tìm kiếm cho "${keyword}"`
+    : category && typeTitles[category]
+      ? typeTitles[category]
+      : "Danh sách phim";
   
   useEffect(() => {
     // Scroll to top when component mounts or route changes
     window.scrollTo(0, 0);
-  }, [category, keyword, location.pathname]);
-
-  useEffect(() => {
-    // const query = new URLSearchParams(location.search);
-    // console.log(query);
-    // const type = query.get("type");
-
-    if (keyword) {
-      setTitle(`Kết quả tìm kiếm cho "${keyword}"`);
-    } else if (category && typeTitles[category]) {
-      setTitle(typeTitles[category]);
-    } else {
-      setTitle("Danh sách phim");
-    }
-  }, [keyword, location.search, category]);
+  }, [pathname]);
   return (
     <>
       <Helmet>

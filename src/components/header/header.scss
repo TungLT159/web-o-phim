@@ -394,11 +394,17 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     display: flex;
     align-items: center;
     gap: 12px;
+    width: 100%;
     padding: 10px;
     border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    box-shadow: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 
@@ -492,6 +498,7 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
 .hamburger {
   display: none;
   font-size: 28px;
+  color: inherit;
   cursor: pointer;
   transition: all 0.3s ease;
   padding: 8px;
@@ -660,6 +667,11 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
 
   .mobile-parent {
     @include flex(center, space-between);
+    width: 100%;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font: inherit;
     font-weight: 600;
     font-size: 1.05rem;
     cursor: pointer;
@@ -684,6 +696,18 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
     &:hover span {
       transform: scale(1.2);
     }
+  }
+
+  .mobile-search .search-suggestions .suggestion-item {
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+    font: inherit;
+    justify-content: flex-start;
+    text-align: left;
+    width: 100%;
   }
 
   .mobile-submenu {
@@ -731,6 +755,8 @@ $header-gradient: linear-gradient(180deg, rgba(15, 15, 15, 0.98) 0%, rgba(15, 15
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.8);
+  border: 0;
+  padding: 0;
   backdrop-filter: blur(4px);
   z-index: 140;
   animation: fadeIn 0.3s ease;

@@ -31,16 +31,10 @@ const Header = () => {
 
   useEffect(() => {
     const shrinkHeader = () => {
-      if (
-        document.body.scrollTop > 100 ||
-        document.documentElement.scrollTop > 100
-      ) {
-        headerRef.current.classList.add("shrink");
-      } else {
-        headerRef.current.classList.remove("shrink");
-      }
+      headerRef.current?.classList.toggle("shrink", window.scrollY > 100);
     };
-    window.addEventListener("scroll", shrinkHeader);
+    shrinkHeader();
+    window.addEventListener("scroll", shrinkHeader, { passive: true });
     return () => window.removeEventListener("scroll", shrinkHeader);
   }, []);
 
@@ -212,22 +206,27 @@ const Header = () => {
           </div>
 
           {/* Hamburger */}
-          <div className="hamburger" onClick={() => setIsMobileMenuOpen(true)}>
+          <button
+            type="button"
+            className="hamburger"
+            aria-label="Mở menu"
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
             ☰
-          </div>
+          </button>
 
           {/* Desktop Nav */}
           <ul className="header__nav desktop">
             {headerNav.map((e, i) => (
               <li
-                key={i}
+                key={e.display}
                 className={`nav-item ${i === active ? "active" : ""}`}
               >
                 <span>{e.display}</span>
 
                 <ul className="nav-submenu">
-                  {e.submenu?.map((sub, idx) => (
-                    <li key={idx}>
+                  {e.submenu?.map((sub) => (
+                    <li key={sub.path}>
                       <Link to={sub.path}>{sub.display}</Link>
                     </li>
                   ))}
@@ -244,7 +243,7 @@ const Header = () => {
           >
             <input
               type="text"
-              placeholder="Nhập tên phim..."
+              placeholder="Nhập tên phim…"
               value={keyword}
               onChange={handleSearchChange}
               onFocus={() =>
@@ -269,32 +268,33 @@ const Header = () => {
           }}
         >
           {isSearching ? (
-            <div className="suggestion-loading">Đang tìm kiếm...</div>
+            <div className="suggestion-loading">Đang tìm kiếm…</div>
           ) : (
             <>
               {suggestions.map((movie) => (
-                <div
+                <button
                   key={movie._id}
+                  type="button"
                   className="suggestion-item"
                   onClick={(e) => handleSuggestionClick(movie, e)}
                   onMouseDown={(e) => e.preventDefault()}
                 >
-                  <div
+                  <span
                     className="suggestion-poster"
                     style={{
                       backgroundImage: `url(${movie.tmdb_poster || movie.thumb_url || movie.poster_url || "/poster-mau.png"})`,
                     }}
-                  ></div>
-                  <div className="suggestion-info">
-                    <div className="suggestion-title">{movie.name}</div>
-                    <div className="suggestion-meta">
-                      {movie.year && <span>{movie.year}</span>}
+                  ></span>
+                  <span className="suggestion-info">
+                    <span className="suggestion-title">{movie.name}</span>
+                    <span className="suggestion-meta">
+                      {movie.year != null && <span>{movie.year}</span>}
                       {movie.quality && (
                         <span className="quality">{movie.quality}</span>
                       )}
-                    </div>
-                  </div>
-                </div>
+                    </span>
+                  </span>
+                </button>
               ))}
             </>
           )}
@@ -311,7 +311,7 @@ const Header = () => {
         <form className="mobile-search" onSubmit={goToSearch}>
           <input
             type="text"
-            placeholder="Nhập tên phim..."
+            placeholder="Nhập tên phim…"
             value={keyword}
             onChange={handleSearchChange}
           />
@@ -321,33 +321,34 @@ const Header = () => {
           {showSuggestions && (
             <div className="search-suggestions mobile">
               {isSearching ? (
-                <div className="suggestion-loading">Đang tìm kiếm...</div>
+                <div className="suggestion-loading">Đang tìm kiếm…</div>
               ) : (
                 <>
                   {suggestions.map((movie) => (
-                    <div
+                    <button
                       key={movie._id}
+                      type="button"
                       className="suggestion-item"
                       onTouchStart={handleTouchStart}
                       onTouchEnd={(e) => handleTouchEnd(movie, e)}
                       onClick={(e) => handleSuggestionClick(movie, e)}
                     >
-                      <div
+                      <span
                         className="suggestion-poster"
                         style={{
                           backgroundImage: `url(${movie.tmdb_poster || movie.thumb_url || movie.poster_url || "/poster-mau.png"})`,
                         }}
-                      ></div>
-                      <div className="suggestion-info">
-                        <div className="suggestion-title">{movie.name}</div>
-                        <div className="suggestion-meta">
-                          {movie.year && <span>{movie.year}</span>}
+                      ></span>
+                      <span className="suggestion-info">
+                        <span className="suggestion-title">{movie.name}</span>
+                        <span className="suggestion-meta">
+                          {movie.year != null && <span>{movie.year}</span>}
                           {movie.quality && (
                             <span className="quality">{movie.quality}</span>
                           )}
-                        </div>
-                      </div>
-                    </div>
+                        </span>
+                      </span>
+                    </button>
                   ))}
                 </>
               )}
@@ -356,17 +357,24 @@ const Header = () => {
         </form>
         <ul>
           {headerNav.map((e, i) => (
-            <li key={i}>
-              <div className="mobile-parent" onClick={() => toggleSubmenu(i)}>
+            <li key={e.display}>
+              <button
+                type="button"
+                className="mobile-parent"
+                aria-expanded={openSubmenu === i}
+                aria-controls={`mobile-submenu-${i}`}
+                onClick={() => toggleSubmenu(i)}
+              >
                 {e.display}
                 <span>{openSubmenu === i ? "-" : "+"}</span>
-              </div>
+              </button>
 
               <ul
+                id={`mobile-submenu-${i}`}
                 className={`mobile-submenu ${openSubmenu === i ? "show" : ""}`}
               >
-                {e.submenu?.map((sub, idx) => (
-                  <li key={idx}>
+                {e.submenu?.map((sub) => (
+                  <li key={sub.path}>
                     <Link
                       to={sub.path}
                       onClick={() => setIsMobileMenuOpen(false)}
@@ -383,7 +391,12 @@ const Header = () => {
 
       {/* Overlay */}
       {isMobileMenuOpen && (
-        <div className="overlay" onClick={() => setIsMobileMenuOpen(false)} />
+        <button
+          type="button"
+          className="overlay"
+          aria-label="Đóng menu"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
       )}
     </>
   );

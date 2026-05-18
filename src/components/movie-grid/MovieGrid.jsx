@@ -96,11 +96,18 @@ import tmdbApi from "../../api/tmdbApi";
 import "./movie-grid.scss";
 import MovieCard from "../movie-card/MovieCard";
 
+const MOVIE_GRID_PAGE_SIZE = 28;
+const MOVIE_GRID_SKELETONS = Array.from(
+  { length: MOVIE_GRID_PAGE_SIZE },
+  (_, index) => index,
+);
+
 const MovieGrid = (props) => {
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [title, setTitle] = useState("");
   const [totalPage, setTotalPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { keyword, category, type } = useParams();
   const navigate = useNavigate();
@@ -109,29 +116,30 @@ const MovieGrid = (props) => {
   const pageFromUrl = parseInt(query.get("page")) || 1;
   const getList = async (pageNumber = 1) => {
     let response = null;
+    setIsLoading(true);
     try {
       console.log(keyword, category, type);
       if (keyword === undefined) {
         if (category === "the-loai") {
           response = await tmdbApi.getListByType(type, {
             page: pageNumber,
-            limit: 28,
+            limit: MOVIE_GRID_PAGE_SIZE,
           });
         } else if (category === "quoc-gia") {
           response = await tmdbApi.getListByCountry(type, {
             page: pageNumber,
-            limit: 28,
+            limit: MOVIE_GRID_PAGE_SIZE,
           });
         } else {
           response = await tmdbApi.getMoviesList(type, {
             page: pageNumber,
-            limit: 28,
+            limit: MOVIE_GRID_PAGE_SIZE,
           });
         }
       } else {
         response = await tmdbApi.search(props.category, {
           keyword,
-          limit: 28,
+          limit: MOVIE_GRID_PAGE_SIZE,
           page: pageNumber,
         });
       }
@@ -153,6 +161,8 @@ const MovieGrid = (props) => {
       }
     } catch (error) {
       console.error("Lỗi gọi API:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -194,16 +204,33 @@ const MovieGrid = (props) => {
 
   return (
     <>
-      {title && <h2 className="movie-grid__title">{title}</h2>}
+      <h2
+        className={`movie-grid__title ${title ? "" : "movie-grid__title--empty"}`}
+        aria-hidden={!title}
+      >
+        {title || "Danh sách phim"}
+      </h2>
 
-      <div className="movie-grid">
-        {items.map((item, i) => (
-          <MovieCard
-            category={props.category}
-            item={item}
-            key={item._id || i}
-          />
-        ))}
+      <div className="movie-grid" aria-busy={isLoading}>
+        {items.length > 0
+          ? items.map((item) => (
+              <MovieCard
+                category={props.category}
+                item={item}
+                key={item._id ?? item.slug}
+              />
+            ))
+          : isLoading
+            ? MOVIE_GRID_SKELETONS.map((index) => (
+                <div
+                  key={index}
+                  className="movie-grid__skeleton"
+                  aria-hidden="true"
+                />
+              ))
+            : (
+                <p className="movie-grid__empty">Không tìm thấy phim phù hợp.</p>
+              )}
       </div>
 
       {totalPage > 1 && (
@@ -215,14 +242,14 @@ const MovieGrid = (props) => {
             &lt;
           </button>
 
-          {getPagination(page, totalPage).map((p, i) =>
+          {getPagination(page, totalPage).map((p, i, pages) =>
             p === "..." ? (
-              <span key={i} className="dots">
+              <span key={`ellipsis-before-${pages[i + 1] ?? "end"}`} className="dots">
                 ...
               </span>
             ) : (
               <button
-                key={i}
+                key={`page-${p}`}
                 className={page === p ? "active" : ""}
                 onClick={() => handlePageChange(p)}
               >

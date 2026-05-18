@@ -404,7 +404,7 @@ const CustomVideoPlayer = ({
           </span>
         </>
       ) : (
-        <span>Collecting metrics...</span>
+        <span>Collecting metrics…</span>
       )}
     </div>
   ) : null;
@@ -461,7 +461,7 @@ const CustomVideoPlayer = ({
       {isLoading && !hasError && (
         <div className="custom-video-player__state custom-video-player__state--loading">
           <span className="custom-video-player__spinner" />
-          <span>Đang tải video...</span>
+          <span>Đang tải video…</span>
         </div>
       )}
 

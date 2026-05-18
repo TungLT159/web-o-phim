@@ -48,7 +48,7 @@ const MovieCard = (props) => {
         )}
         
         {/* Rating Badge */}
-        {rating && (
+        {rating != null && (
           <div className="movie-card__badge rating-badge">
             <i className="bx bxs-star"></i>
             <span>{rating.toFixed(1)}</span>
@@ -62,17 +62,17 @@ const MovieCard = (props) => {
           </Button>
           
           <div className="movie-card__info">
-            {item.year && (
+            {item.year != null && (
               <span className="movie-card__year">
                 <i className="bx bx-calendar"></i> {item.year}
               </span>
             )}
-            {voteCount && (
+            {voteCount != null && (
               <span className="movie-card__votes">
                 <i className="bx bx-user"></i> {voteCount.toLocaleString()}
               </span>
             )}
-            {item.view && (
+            {item.view != null && (
               <span className="movie-card__views">
                 <i className="bx bx-show"></i> {item.view.toLocaleString()}
               </span>

@@ -74,63 +74,23 @@
 
   &__loading-slider {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 20px;
     padding: 0.75rem 0 2.5rem;
 
-    .ranking-section__skeleton-card:nth-child(n + 2) {
-      display: none;
-    }
-
     @media (min-width: 640px) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 15px;
       padding: 1rem 0 3rem;
-
-      .ranking-section__skeleton-card {
-        display: block;
-      }
-
-      .ranking-section__skeleton-card:nth-child(n + 3) {
-        display: none;
-      }
     }
 
     @media (min-width: 768px) {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 20px;
-
-      .ranking-section__skeleton-card {
-        display: block;
-      }
-
-      .ranking-section__skeleton-card:nth-child(n + 4) {
-        display: none;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-
-      .ranking-section__skeleton-card {
-        display: block;
-      }
-
-      .ranking-section__skeleton-card:nth-child(n + 5) {
-        display: none;
-      }
     }
 
     @media (min-width: 1280px) {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-
-      .ranking-section__skeleton-card {
-        display: block;
-      }
-
-      .ranking-section__skeleton-card:nth-child(n + 6) {
-        display: none;
-      }
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     }
   }
 
