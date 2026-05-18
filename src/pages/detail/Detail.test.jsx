@@ -1,6 +1,6 @@
 import React from "react";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import Detail from "./Detail";
 import tmdbApi from "../../api/tmdbApi";
@@ -78,6 +78,26 @@ const movieDetail = {
   ],
 };
 
+const renderDetail = (initialEntry = "/movie/test-movie") =>
+  render(
+    <MemoryRouter
+      initialEntries={[initialEntry]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route path="/:category/:id" element={<Detail />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const setMediaProperty = (element, property, value) => {
+  Object.defineProperty(element, property, {
+    configurable: true,
+    writable: true,
+    value,
+  });
+};
+
 beforeEach(() => {
   clearAllEpisodeLinks();
   localStorage.clear();
@@ -144,6 +164,28 @@ test("saved progress prefers group-aware episode keys over legacy episode names"
 
   expect(await screen.findByText(/Tiếp tục xem từ/)).toHaveTextContent(
     "Tiếp tục xem từ 04:00?",
+  );
+});
+
+test("shows saved progress notice for progress at the 1 percent threshold", async () => {
+  localStorage.setItem(
+    "ophim_watch_history:v1",
+    JSON.stringify([
+      {
+        key: "test-movie_0:tap-1",
+        movieId: "test-movie",
+        episodeName: "0:tap-1",
+        currentTime: 12,
+        duration: 1200,
+        percentage: 1,
+      },
+    ]),
+  );
+
+  renderDetail("/movie/test-movie?ep=0:tap-1");
+
+  expect(await screen.findByText(/Tiếp tục xem từ/)).toHaveTextContent(
+    "Tiếp tục xem từ 00:12?",
   );
 });
 
@@ -226,6 +268,47 @@ test("URL episode changes load saved progress for the new episode", async () => 
   expect(await screen.findByText(/Tiếp tục xem từ/)).toHaveTextContent(
     "Tiếp tục xem từ 02:00?",
   );
+});
+
+test("saves final watch progress on unmount before the 5-second interval", async () => {
+  const { unmount } = renderDetail();
+
+  const video = await screen.findByTestId("video-player");
+  setMediaProperty(video, "currentTime", 123);
+  setMediaProperty(video, "duration", 1200);
+
+  fireEvent(video, new Event("timeupdate"));
+  unmount();
+
+  const history = JSON.parse(localStorage.getItem("ophim_watch_history:v1"));
+  expect(history[0]).toMatchObject({
+    key: "test-movie_0:tap-1",
+    movieId: "test-movie",
+    episodeName: "0:tap-1",
+    currentTime: 123,
+    duration: 1200,
+  });
+});
+
+test("saves final watch progress on pagehide before the 5-second interval", async () => {
+  renderDetail();
+
+  const video = await screen.findByTestId("video-player");
+  setMediaProperty(video, "currentTime", 234);
+  setMediaProperty(video, "duration", 1200);
+
+  fireEvent(video, new Event("timeupdate"));
+
+  act(() => {
+    window.dispatchEvent(new Event("pagehide"));
+  });
+
+  const history = JSON.parse(localStorage.getItem("ophim_watch_history:v1"));
+  expect(history[0]).toMatchObject({
+    key: "test-movie_0:tap-1",
+    currentTime: 234,
+    duration: 1200,
+  });
 });
 
 test("shows a playback error when the current episode has no playable link", async () => {

@@ -4,9 +4,9 @@
     position: relative;
     padding: 0.5rem 0;
 
-    // Swiper container improvements
-    .swiper-container {
-        padding: 1rem 0;
+    // Swiper viewport clearance for lifted hover cards
+    .swiper {
+        padding: 1.5rem 0;
         margin: 0 -0.5rem;
     }
 

@@ -292,6 +292,39 @@ const Detail = () => {
 
     let hasTriggeredAutoPlay = false;
 
+    const persistCurrentProgress = () => {
+      const currentVideo = videoRef.current || video;
+      if (
+        currentVideo &&
+        currentEp &&
+        item &&
+        currentVideo.currentTime > 0 &&
+        currentVideo.duration > 0
+      ) {
+        saveWatchProgress(
+          id,
+          getEpisodeProgressKey(currentEp),
+          currentVideo.currentTime,
+          currentVideo.duration,
+          {
+            title: item.title || item.name,
+            poster: poster_url,
+            slug: item.slug,
+          },
+        );
+      }
+    };
+
+    const handlePageHide = () => {
+      persistCurrentProgress();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        persistCurrentProgress();
+      }
+    };
+
     const handleTimeUpdate = () => {
       const currentTime = video.currentTime;
       const duration = video.duration;
@@ -300,20 +333,7 @@ const Detail = () => {
       if (currentTime > 0 && duration > 0) {
         if (!saveProgressIntervalRef.current) {
           saveProgressIntervalRef.current = setInterval(() => {
-            const video = videoRef.current;
-            if (video && currentEp && item) {
-              saveWatchProgress(
-                id,
-                getEpisodeProgressKey(currentEp),
-                video.currentTime,
-                video.duration,
-                {
-                  title: item.title || item.name,
-                  poster: poster_url,
-                  slug: item.slug,
-                },
-              );
-            }
+            persistCurrentProgress();
           }, 5000);
         }
       }
@@ -363,10 +383,15 @@ const Detail = () => {
 
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("ended", handleVideoEnded);
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      persistCurrentProgress();
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("ended", handleVideoEnded);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearAutoPlayTimers();
 
       // Clear save progress interval

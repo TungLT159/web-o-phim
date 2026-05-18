@@ -4,6 +4,7 @@ import { OutlineButton } from "../components/button/Button";
 import HeroSlide from "../components/hero-slide/HeroSlide";
 import MovieList from "../components/movie-list/MovieList";
 import RankingSection from "../components/ranking-section/RankingSection";
+import ContinueWatchingList from "../components/continue-watching-list/ContinueWatchingList";
 import { category, movieType } from "../api/tmdbApi";
 import tmdbApi from "../api/tmdbApi";
 import { Helmet } from "react-helmet";
@@ -182,6 +183,8 @@ export default function Home() {
           /> */}
         </div>
       </div>
+
+      <ContinueWatchingList />
 
       <div className="section mb-3">
         <div className="section__header mb-2">

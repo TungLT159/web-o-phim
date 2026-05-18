@@ -63,23 +63,24 @@ const rankingSectionStyles = fs.readFileSync(
   "utf8",
 );
 
-const expectSkeletonBreakpoint = (styles, minWidth, columns, hiddenFrom) => {
+const expectSkeletonBreakpoint = (styles, minWidth, width) => {
   const blockPattern = new RegExp(
-    `@media\\s*\\(min-width:\\s*${minWidth}px\\)\\s*\\{[\\s\\S]*?grid-template-columns:\\s*repeat\\(${columns},\\s*minmax\\(0,\\s*1fr\\)\\)[\\s\\S]*?ranking-section__skeleton-card:nth-child\\(n \\+ ${hiddenFrom}\\)`,
+    `&__skeleton-card\\s*\\{[\\s\\S]*?@media\\s*\\(min-width:\\s*${minWidth}px\\)\\s*\\{[\\s\\S]*?width:\\s*${width}`,
   );
 
   expect(styles).toMatch(blockPattern);
 };
 
-test("ranking skeleton breakpoints mirror Swiper slidesPerView", () => {
+test("ranking skeleton widths mirror Swiper slidesPerView without hiding cards", () => {
   expect(rankingSectionStyles).toMatch(
-    /&__loading-slider\s*\{[\s\S]*?grid-template-columns:\s*1fr[\s\S]*?ranking-section__skeleton-card:nth-child\(n \+ 2\)/,
+    /&__loading-slider\s*\{[\s\S]*?display:\s*flex[\s\S]*?overflow:\s*hidden/,
   );
+  expect(rankingSectionStyles).not.toMatch(/ranking-section__skeleton-card:nth-child/);
 
-  expectSkeletonBreakpoint(rankingSectionStyles, 640, 2, 3);
-  expectSkeletonBreakpoint(rankingSectionStyles, 768, 3, 4);
-  expectSkeletonBreakpoint(rankingSectionStyles, 1024, 4, 5);
-  expectSkeletonBreakpoint(rankingSectionStyles, 1280, 5, 6);
+  expectSkeletonBreakpoint(rankingSectionStyles, 640, "calc\\(50% - 7\\.5px\\)");
+  expectSkeletonBreakpoint(rankingSectionStyles, 768, "calc\\(33\\.333333% - 13\\.333333px\\)");
+  expectSkeletonBreakpoint(rankingSectionStyles, 1024, "calc\\(25% - 15px\\)");
+  expectSkeletonBreakpoint(rankingSectionStyles, 1280, "calc\\(20% - 16px\\)");
 });
 
 test("ranking carousel uses auto poster widths to fill the viewport", async () => {
@@ -103,6 +104,35 @@ test("ranking slide width CSS avoids unsupported calc multiplication and divisio
   );
 });
 
+test("ranking card visual tokens align with movie card posters", () => {
+  const rankingCardBlock = rankingSectionStyles.match(
+    /\.ranking-card\s*\{[\s\S]*?&__rank\s*\{/,
+  )?.[0];
+  const posterBlock = rankingSectionStyles.match(
+    /&__poster\s*\{[\s\S]*?img\s*\{/,
+  )?.[0];
+  const infoBlock = rankingSectionStyles.match(
+    /&__info\s*\{[\s\S]*?\}/,
+  )?.[0];
+  const titleBlock = rankingSectionStyles.match(
+    /&__title\s*\{[\s\S]*?\}/,
+  )?.[0];
+
+  expect(rankingCardBlock).toMatch(/border-radius:\s*16px/);
+  expect(rankingCardBlock).toMatch(/overflow:\s*visible/);
+  expect(rankingCardBlock).toMatch(/background:\s*transparent/);
+  expect(rankingCardBlock).toMatch(/box-shadow:\s*0 8px 24px rgba\(0, 0, 0, 0\.4\)/);
+  expect(rankingCardBlock).not.toMatch(/border:\s*1px solid/);
+
+  expect(posterBlock).toMatch(/aspect-ratio:\s*2\s*\/\s*3/);
+  expect(posterBlock).toMatch(/border-radius:\s*16px/);
+  expect(posterBlock).toMatch(/box-shadow:\s*0 8px 24px rgba\(0, 0, 0, 0\.4\)/);
+
+  expect(infoBlock).not.toMatch(/background:\s*linear-gradient/);
+  expect(titleBlock).toMatch(/margin:\s*0 0 0\.5rem 0/);
+  expect(titleBlock).toMatch(/-webkit-line-clamp:\s*2/);
+});
+
 test("ranking carousel keeps auto slide sizing at every breakpoint", async () => {
   fetchTMDBImages.mockResolvedValue({ posterUrl: "/poster.jpg" });
 
@@ -119,6 +149,10 @@ test("ranking carousel keeps auto slide sizing at every breakpoint", async () =>
     1024: { slidesPerView: "auto" },
     1280: { slidesPerView: "auto" },
   });
+});
+
+test("ranking carousel reserves top clearance for hover lift", () => {
+  expect(rankingSectionStyles).toMatch(/\.ranking-slider\s*\{[\s\S]*?padding:\s*1\.5rem\s+0\s+3rem/);
 });
 
 test("reserves ranking card space while movie images are loading", () => {

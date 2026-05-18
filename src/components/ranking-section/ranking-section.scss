@@ -73,33 +73,44 @@
   }
 
   &__loading-slider {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    display: flex;
     gap: 20px;
+    overflow: hidden;
     padding: 0.75rem 0 2.5rem;
 
     @media (min-width: 640px) {
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 15px;
       padding: 1rem 0 3rem;
     }
 
     @media (min-width: 768px) {
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 20px;
-    }
-
-    @media (min-width: 1280px) {
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     }
   }
 
   &__skeleton-card {
-    overflow: hidden;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex: 0 0 auto;
+    width: 100%;
+    overflow: visible;
+    border-radius: 16px;
+    background: transparent;
     opacity: 0.75;
+
+    @media (min-width: 640px) {
+      width: calc(50% - 7.5px);
+    }
+
+    @media (min-width: 768px) {
+      width: calc(33.333333% - 13.333333px);
+    }
+
+    @media (min-width: 1024px) {
+      width: calc(25% - 15px);
+    }
+
+    @media (min-width: 1280px) {
+      width: calc(20% - 16px);
+    }
   }
 
   &__skeleton-poster,
@@ -129,15 +140,14 @@
   &__skeleton-poster {
     aspect-ratio: 2/3;
     background: #000;
+    border-radius: 16px;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+                0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   &__skeleton-info {
-    padding: 1rem;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.6) 0%,
-      rgba(0, 0, 0, 0.8) 100%
-    );
+    padding: 0;
   }
 
   &__skeleton-title {
@@ -167,7 +177,7 @@
 }
 
 .ranking-slider {
-  padding: 1rem 0 3rem;
+  padding: 1.5rem 0 3rem;
   position: relative;
 
   .swiper-slide {
@@ -219,11 +229,12 @@
   display: block;
   text-decoration: none;
   position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  overflow: visible;
+  background: transparent;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+              0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   height: 100%;
 
   &__rank {
@@ -278,6 +289,10 @@
     aspect-ratio: 2/3;
     overflow: hidden;
     background: #000;
+    border-radius: 16px;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+                0 2px 8px rgba(0, 0, 0, 0.2);
 
     img {
       width: 100%;
@@ -293,7 +308,7 @@
       background: linear-gradient(135deg, #e50914 0%, #ff3d71 100%);
       color: #fff;
       padding: 4px 8px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
@@ -317,6 +332,7 @@
     justify-content: center;
     opacity: 0;
     transition: opacity 0.3s ease;
+    border-radius: 16px;
     z-index: 2;
 
     .play-button {
@@ -340,12 +356,7 @@
   }
 
   &__info {
-    padding: 1rem;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.6) 0%,
-      rgba(0, 0, 0, 0.8) 100%
-    );
+    padding: 0;
   }
 
   &__title {
@@ -408,10 +419,11 @@
   // Hover effects
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      transform: translateY(-8px);
-      border-color: rgba(255, 61, 113, 0.4);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6),
-                  0 0 0 2px rgba(255, 61, 113, 0.3);
+      transform: translateY(-12px) scale(1.03);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6),
+                  0 0 0 3px rgba(255, 61, 113, 0.4),
+                  0 8px 32px rgba(229, 9, 20, 0.3);
+      z-index: 100;
     }
 
     &:hover &__poster img {
@@ -537,12 +549,12 @@
     }
 
     &__info {
-      padding: 0.85rem;
+      padding: 0;
     }
 
     &__title {
       font-size: 0.9rem;
-      min-height: 2.4em;
+      min-height: 2.8em;
     }
 
     &__meta {
@@ -609,7 +621,7 @@
   }
 
   .ranking-slider {
-    padding: 0.75rem 0 2.5rem;
+    padding: 1.25rem 0 2.5rem;
   }
 
   .ranking-card {
@@ -648,13 +660,13 @@
     }
 
     &__info {
-      padding: 0.75rem;
+      padding: 0;
     }
 
     &__title {
       font-size: 0.85rem;
-      min-height: 2.2em;
-      -webkit-line-clamp: 1;
+      min-height: 2.8em;
+      -webkit-line-clamp: 2;
     }
 
     &__meta {

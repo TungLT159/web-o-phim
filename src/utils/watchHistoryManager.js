@@ -127,9 +127,9 @@ export const shouldShowContinueWatching = (currentTime, duration) => {
   
   const percentage = (currentTime / duration) * 100;
   
-  // Chỉ hiển thị nếu đã xem từ 5% đến 95%
+  // Chỉ hiển thị nếu đã xem từ 1% đến 95%
   // Không hiển thị nếu mới bắt đầu hoặc đã xem gần hết
-  return percentage >= 5 && percentage <= 95;
+  return percentage >= 1 && percentage <= 95;
 };
 
 /**
@@ -160,10 +160,41 @@ export const getInProgressMovies = () => {
     const history = getWatchHistory();
     return history.filter(item => {
       const percentage = item.percentage || 0;
-      return percentage >= 5 && percentage <= 95;
+      return percentage >= 1 && percentage <= 95;
     }).slice(0, 20); // Lấy tối đa 20 phim
   } catch (error) {
     console.error('Error getting in-progress movies:', error);
+    return [];
+  }
+};
+
+export const getRecentInProgressMovies = (limit = 10) => {
+  try {
+    const seenMovies = new Set();
+    const getTimestampTime = item => {
+      const time = new Date(item.timestamp).getTime();
+      return Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
+    };
+
+    return getWatchHistory()
+      .filter(item => {
+        const percentage = item.percentage || 0;
+        return percentage >= 1 && percentage <= 95;
+      })
+      .sort((a, b) => getTimestampTime(b) - getTimestampTime(a))
+      .filter(item => {
+        const movieKey = item.movieInfo?.slug || item.movieId;
+
+        if (seenMovies.has(movieKey)) {
+          return false;
+        }
+
+        seenMovies.add(movieKey);
+        return true;
+      })
+      .slice(0, limit);
+  } catch (error) {
+    console.error('Error getting recent in-progress movies:', error);
     return [];
   }
 };

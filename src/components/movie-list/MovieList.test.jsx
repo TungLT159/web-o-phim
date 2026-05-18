@@ -1,9 +1,13 @@
 import React from "react";
+import fs from "fs";
+import path from "path";
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import MovieList from "./MovieList";
 import tmdbApi from "../../api/tmdbApi";
+
+const styles = fs.readFileSync(path.join(__dirname, "movie-list.scss"), "utf8");
 
 jest.mock(
   "swiper/react",
@@ -64,4 +68,9 @@ test("keeps placeholder card space when the movie response is empty", async () =
   const placeholders = screen.getAllByTestId("movie-list-skeleton-card");
   expect(placeholders).toHaveLength(6);
   expect(screen.getByTestId("movie-list-carousel")).toHaveClass("movie-list--empty");
+});
+
+test("movie carousel reserves top clearance for hover lift", () => {
+  expect(styles).toMatch(/\.movie-list\s*\{[\s\S]*?\.swiper\s*\{[\s\S]*?padding:\s*1\.5rem\s+0/);
+  expect(styles).not.toMatch(/\.swiper-container\s*\{[\s\S]*?padding:\s*1rem\s+0/);
 });
