@@ -189,3 +189,13 @@ test("continue watching carousel reserves horizontal lanes for navigation button
   expect(styles).toMatch(/@include tablet\s*\{[\s\S]*?padding:\s*0\s+50px/);
   expect(styles).toMatch(/@include mobile\s*\{[\s\S]*?padding:\s*0\s+15px/);
 });
+
+test("hides carousel navigation buttons on mobile while keeping carousel breathing room", () => {
+  const mobileWrapperStyles = styles.match(/&__carousel-wrapper\s*\{[\s\S]*?@include mobile\s*\{([\s\S]*?)\n\s*\}/)?.[1];
+  const buttonStyles = styles.match(
+    /\.swiper-button-prev,\s*\.swiper-button-next\s*\{([\s\S]*?)\n  \}/,
+  )?.[1];
+
+  expect(mobileWrapperStyles).toMatch(/padding:\s*0\s+15px/);
+  expect(buttonStyles).toMatch(/@include mobile\s*\{[\s\S]*?display:\s*none/);
+});

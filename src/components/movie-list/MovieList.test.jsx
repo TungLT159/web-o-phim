@@ -120,6 +120,15 @@ test("movie carousel reserves horizontal lanes for navigation buttons", () => {
   expect(styles).toMatch(/@include mobile\s*\{[\s\S]*?padding:\s*0\.5rem\s+15px/);
 });
 
+test("movie carousel hides navigation buttons on mobile while keeping padding", () => {
+  const buttonStyles = styles.match(
+    /\.swiper-button-prev,\s*\.swiper-button-next\s*\{([\s\S]*?)\n    \}/,
+  )?.[1];
+
+  expect(styles).toMatch(/@include mobile\s*\{\s*padding:\s*0\.5rem\s+15px/);
+  expect(buttonStyles).toMatch(/@include mobile\s*\{[\s\S]*?display:\s*none/);
+});
+
 test("movie carousel keeps Swiper content inside the navigation lanes", () => {
   const swiperBlock = styles.match(/\.swiper\s*\{[\s\S]*?\n    \}/)?.[0];
 
