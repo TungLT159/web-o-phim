@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 
 import "./movie-list.scss";
-import { Autoplay } from "swiper/modules";
+import { Autoplay, Navigation } from "swiper/modules";
 
 import { SwiperSlide, Swiper } from "swiper/react";
 
@@ -16,6 +16,9 @@ const MovieList = (props) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const showPlaceholders = loading || items.length === 0;
+  const navigationId = props.type.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const prevButtonClass = `movie-list__button-prev-${navigationId}`;
+  const nextButtonClass = `movie-list__button-next-${navigationId}`;
 
   /**
    * Lấy danh sách phim
@@ -59,11 +62,15 @@ const MovieList = (props) => {
       data-testid="movie-list-carousel"
     >
       <Swiper
-        modules={[Autoplay]}
+        modules={[Navigation, Autoplay]}
         grabCursor={true}
         spaceBetween={10}
         slidesPerView={"auto"}
         autoplay={{ delay: 4000 }}
+        navigation={{
+          nextEl: `.${nextButtonClass}`,
+          prevEl: `.${prevButtonClass}`,
+        }}
       >
         {showPlaceholders
           ? Array.from({ length: 6 }).map((_, i) => (
@@ -83,6 +90,12 @@ const MovieList = (props) => {
               </SwiperSlide>
             ))}
       </Swiper>
+      <div className={`movie-list__button-prev ${prevButtonClass} swiper-button-prev`}>
+        <i className="bx bx-chevron-left"></i>
+      </div>
+      <div className={`movie-list__button-next ${nextButtonClass} swiper-button-next`}>
+        <i className="bx bx-chevron-right"></i>
+      </div>
     </div>
   );
 };

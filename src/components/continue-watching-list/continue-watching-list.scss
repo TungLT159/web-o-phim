@@ -1,8 +1,77 @@
 @use "../../scss/breakpoint" as *;
 
 .continue-watching-list {
+  &__carousel-wrapper {
+    position: relative;
+    padding: 0 60px;
+
+    @include tablet {
+      padding: 0 50px;
+    }
+
+    @include mobile {
+      padding: 0 15px;
+    }
+  }
+
   &__carousel {
     padding: 1.5rem 0 0.5rem;
+  }
+
+  .swiper-button-prev,
+  .swiper-button-next {
+    position: absolute;
+    top: 50%;
+    width: 50px;
+    height: 50px;
+    margin-top: -25px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: #fff;
+    transition: all 0.3s ease;
+    z-index: 10;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &::after {
+      display: none;
+    }
+
+    i {
+      color: #fff;
+      font-size: 1.8rem;
+    }
+
+    &:hover {
+      background: rgba(229, 9, 20, 0.9);
+      border-color: rgba(255, 61, 113, 0.5);
+      transform: scale(1.1);
+      box-shadow: 0 4px 16px rgba(229, 9, 20, 0.4);
+    }
+
+    &.swiper-button-disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      pointer-events: none;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.8);
+        transform: scale(1);
+        box-shadow: none;
+      }
+    }
+  }
+
+  .swiper-button-prev {
+    left: 0;
+  }
+
+  .swiper-button-next {
+    right: 0;
   }
 
   .swiper-slide {

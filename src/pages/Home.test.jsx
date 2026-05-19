@@ -22,12 +22,29 @@ jest.mock("../components/ranking-section/RankingSection", () => ({ title }) => (
 jest.mock(
   "swiper/react",
   () => ({
-    Swiper: ({ children, className, grabCursor, slidesPerView, spaceBetween, ...props }) => (
+    Swiper: ({
+      autoplay,
+      children,
+      className,
+      grabCursor,
+      modules,
+      slidesPerView,
+      spaceBetween,
+      ...props
+    }) => (
       <div {...props} className={className ? `swiper ${className}` : "swiper"}>
         {children}
       </div>
     ),
     SwiperSlide: ({ children }) => <div className="swiper-slide">{children}</div>,
+  }),
+  { virtual: true },
+);
+
+jest.mock(
+  "swiper/modules",
+  () => ({
+    Autoplay: {},
   }),
   { virtual: true },
 );

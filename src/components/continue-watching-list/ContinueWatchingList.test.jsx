@@ -6,6 +6,9 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ContinueWatchingList from "./ContinueWatchingList";
 
+const AUTOPLAY_MODULE_MARKER = "autoplay-module";
+const NAVIGATION_MODULE_MARKER = "navigation-module";
+
 jest.mock(
   "swiper/react",
   () => ({
@@ -22,6 +25,14 @@ jest.mock(
       <div
         {...props}
         className={className ? `swiper ${className}` : "swiper"}
+        data-has-autoplay-module={
+          modules?.includes(AUTOPLAY_MODULE_MARKER) ? "true" : "false"
+        }
+        data-has-navigation-module={
+          modules?.includes(NAVIGATION_MODULE_MARKER) ? "true" : "false"
+        }
+        data-navigation-next={props.navigation?.nextEl || ""}
+        data-navigation-prev={props.navigation?.prevEl || ""}
         data-slides-per-view={slidesPerView}
       >
         {children}
@@ -35,7 +46,8 @@ jest.mock(
 jest.mock(
   "swiper/modules",
   () => ({
-    Autoplay: {},
+    Autoplay: AUTOPLAY_MODULE_MARKER,
+    Navigation: NAVIGATION_MODULE_MARKER,
   }),
   { virtual: true },
 );
@@ -107,6 +119,28 @@ test("renders a continue watching card linked to the resume episode", () => {
     "data-slides-per-view",
     "auto",
   );
+  expect(screen.getByTestId("continue-watching-carousel")).toHaveAttribute(
+    "data-has-autoplay-module",
+    "true",
+  );
+  expect(screen.getByTestId("continue-watching-carousel")).toHaveAttribute(
+    "data-has-navigation-module",
+    "true",
+  );
+  expect(screen.getByTestId("continue-watching-carousel")).toHaveAttribute(
+    "data-navigation-prev",
+    ".continue-watching-list__button-prev",
+  );
+  expect(screen.getByTestId("continue-watching-carousel")).toHaveAttribute(
+    "data-navigation-next",
+    ".continue-watching-list__button-next",
+  );
+  expect(
+    document.querySelector(".continue-watching-list__button-prev .bx-chevron-left"),
+  ).toBeInTheDocument();
+  expect(
+    document.querySelector(".continue-watching-list__button-next .bx-chevron-right"),
+  ).toBeInTheDocument();
 });
 
 test("rounds progress percentage consistently", () => {
@@ -148,4 +182,10 @@ test("matches movie card visual style tokens while keeping continue controls", (
 
 test("continue watching carousel reserves top clearance for hover lift", () => {
   expect(styles).toMatch(/&__carousel\s*\{[\s\S]*?padding:\s*1\.5rem\s+0/);
+});
+
+test("continue watching carousel reserves horizontal lanes for navigation buttons", () => {
+  expect(styles).toMatch(/&__carousel-wrapper\s*\{[\s\S]*?padding:\s*0\s+60px/);
+  expect(styles).toMatch(/@include tablet\s*\{[\s\S]*?padding:\s*0\s+50px/);
+  expect(styles).toMatch(/@include mobile\s*\{[\s\S]*?padding:\s*0\s+15px/);
 });
