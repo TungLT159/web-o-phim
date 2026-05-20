@@ -29,6 +29,7 @@
     "prebuild": "npm run check:font-loading",
     "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
     "check:font-loading": "node scripts/check-font-loading.js",
+    "check:vercel-routing": "node scripts/check-vercel-routing.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
