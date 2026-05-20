@@ -50,7 +50,6 @@ const DetailSeo = ({
         name="keywords"
         content={`${title}, xem phim ${title}, ${item.category?.map((c) => c.name).join(", ")}, phim ${item.year}`}
       />
-      <link rel="icon" href="/logo.png" />
       <link
         rel="canonical"
         href={`${window.location.origin}/movie/${movieId}${hasCurrentEpisode ? `?ep=${currentEpisodeIdentity}` : ""}`}

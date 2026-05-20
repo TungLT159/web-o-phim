@@ -132,6 +132,28 @@ export const shouldShowContinueWatching = (currentTime, duration) => {
   return percentage >= 1 && percentage <= 95;
 };
 
+const getWatchPercentage = (item) => {
+  const storedPercentage = Number(item.percentage);
+
+  if (Number.isFinite(storedPercentage) && storedPercentage > 0) {
+    return storedPercentage;
+  }
+
+  const currentTime = Number(item.currentTime);
+  const duration = Number(item.duration);
+
+  if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) {
+    return 0;
+  }
+
+  return (currentTime / duration) * 100;
+};
+
+const normalizeWatchItem = (item) => ({
+  ...item,
+  percentage: getWatchPercentage(item),
+});
+
 /**
  * Format thời gian từ giây sang HH:MM:SS hoặc MM:SS
  * @param {number} seconds - Số giây
@@ -158,8 +180,8 @@ export const formatTime = (seconds) => {
 export const getInProgressMovies = () => {
   try {
     const history = getWatchHistory();
-    return history.filter(item => {
-      const percentage = item.percentage || 0;
+    return history.map(normalizeWatchItem).filter(item => {
+      const percentage = getWatchPercentage(item);
       return percentage >= 1 && percentage <= 95;
     }).slice(0, 20); // Lấy tối đa 20 phim
   } catch (error) {
@@ -177,8 +199,9 @@ export const getRecentInProgressMovies = (limit = 10) => {
     };
 
     return getWatchHistory()
+      .map(normalizeWatchItem)
       .filter(item => {
-        const percentage = item.percentage || 0;
+        const percentage = getWatchPercentage(item);
         return percentage >= 1 && percentage <= 95;
       })
       .sort((a, b) => getTimestampTime(b) - getTimestampTime(a))

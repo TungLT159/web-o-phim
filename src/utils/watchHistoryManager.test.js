@@ -30,6 +30,26 @@ test("in-progress movies include items from 1 percent through 95 percent", () =>
   ]);
 });
 
+test("in-progress movies derive missing percentage from current time and duration", () => {
+  localStorage.setItem(
+    "ophim_watch_history:v1",
+    JSON.stringify([
+      {
+        key: "derived-progress",
+        movieId: "derived-progress",
+        currentTime: 120,
+        duration: 600,
+        timestamp: "2026-01-01T00:00:00.000Z",
+        movieInfo: { slug: "derived-progress" },
+      },
+    ]),
+  );
+
+  expect(getRecentInProgressMovies().map((item) => item.key)).toEqual([
+    "derived-progress",
+  ]);
+});
+
 test("recent in-progress movies filter range, sort newest first, and dedupe by movie", () => {
   localStorage.setItem(
     "ophim_watch_history:v1",

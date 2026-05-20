@@ -49,8 +49,6 @@ const Catalog = () => {
         <meta name="twitter:title" content={`${title} | Ổ Phim Online HD`} />
         <meta name="twitter:description" content={`Khám phá ${title.toLowerCase()} chất lượng cao, cập nhật liên tục`} />
         <meta name="twitter:image" content={`${window.location.origin}/poster-mau.png`} />
-        
-        <link rel="icon" href="/logo.png" />
       </Helmet>
       <PageHeader></PageHeader>
       <div className="container" style={{ maxWidth: "100%" }}>

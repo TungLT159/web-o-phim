@@ -189,6 +189,28 @@ test("renders a continue watching card linked to the resume episode", () => {
   ).toBeInTheDocument();
 });
 
+test("renders stored progress that only has current time and duration", () => {
+  seedHistory([
+    {
+      movieId: "movie-1",
+      episodeName: "0:tap-1",
+      currentTime: 120,
+      duration: 600,
+      timestamp: "2026-05-18T00:00:00.000Z",
+      movieInfo: {
+        title: "Test Movie",
+        poster: "/test-poster.jpg",
+        slug: "test-movie",
+      },
+    },
+  ]);
+
+  renderContinueWatchingList();
+
+  expect(screen.getByText("Test Movie")).toBeInTheDocument();
+  expect(screen.getByText("Đã xem 20%")).toBeInTheDocument();
+});
+
 test("renders responsive skeleton cards while loading", () => {
   seedHistory([]);
 
