@@ -61,6 +61,8 @@ const CustomVideoPlayer = ({
   const [hasError, setHasError] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPictureInPicture, setIsPictureInPicture] = useState(false);
+  const [canUsePictureInPicture, setCanUsePictureInPicture] = useState(false);
   const [seekFeedback, setSeekFeedback] = useState(null);
   const [useNativeControls] = useState(shouldUseNativeControls);
   const [showFpsDebug] = useState(shouldShowFpsDebug);
@@ -216,6 +218,20 @@ const CustomVideoPlayer = ({
     }
   }, [getVideo]);
 
+  const togglePictureInPicture = useCallback(() => {
+    const video = getVideo();
+    if (!document.pictureInPictureEnabled || !video?.requestPictureInPicture) {
+      return;
+    }
+
+    const pictureInPictureRequest =
+      document.pictureInPictureElement === video
+        ? document.exitPictureInPicture?.()
+        : video.requestPictureInPicture();
+
+    pictureInPictureRequest?.catch?.(() => {});
+  }, [getVideo]);
+
   const handleCenterPlayClick = useCallback(
     (event) => {
       event.stopPropagation();
@@ -256,8 +272,13 @@ const CustomVideoPlayer = ({
       setVolume(video.volume);
       setIsMuted(video.muted);
     };
+    const handleEnterPictureInPicture = () => setIsPictureInPicture(true);
+    const handleLeavePictureInPicture = () => setIsPictureInPicture(false);
 
     video.controls = useNativeControls;
+    setCanUsePictureInPicture(
+      Boolean(document.pictureInPictureEnabled && video.requestPictureInPicture),
+    );
     syncVolume();
 
     video.addEventListener("play", syncPlayback);
@@ -269,6 +290,8 @@ const CustomVideoPlayer = ({
     video.addEventListener("waiting", handleWaiting);
     video.addEventListener("error", handleError);
     video.addEventListener("volumechange", syncVolume);
+    video.addEventListener("enterpictureinpicture", handleEnterPictureInPicture);
+    video.addEventListener("leavepictureinpicture", handleLeavePictureInPicture);
 
     return () => {
       video.removeEventListener("play", syncPlayback);
@@ -280,6 +303,14 @@ const CustomVideoPlayer = ({
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("error", handleError);
       video.removeEventListener("volumechange", syncVolume);
+      video.removeEventListener(
+        "enterpictureinpicture",
+        handleEnterPictureInPicture,
+      );
+      video.removeEventListener(
+        "leavepictureinpicture",
+        handleLeavePictureInPicture,
+      );
       clearHideControlsTimer();
       if (timeUpdateFrameRef.current) {
         cancelAnimationFrame(timeUpdateFrameRef.current);
@@ -480,13 +511,16 @@ const CustomVideoPlayer = ({
           volume,
           isMuted,
           isFullscreen,
+          isPictureInPicture,
         }}
+        canUsePictureInPicture={canUsePictureInPicture}
         onSeek={handleSeek}
         onTogglePlay={togglePlay}
         onSeekBackward={() => seekBy(-10)}
         onSeekForward={() => seekBy(10)}
         onToggleMute={toggleMute}
         onVolumeChange={handleVolumeChange}
+        onTogglePictureInPicture={togglePictureInPicture}
         onToggleFullscreen={toggleFullscreen}
       />
     </div>

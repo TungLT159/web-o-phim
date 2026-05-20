@@ -10,6 +10,12 @@ const originalInnerWidth = window.innerWidth;
 const originalInnerHeight = window.innerHeight;
 const originalRequestAnimationFrame = window.requestAnimationFrame;
 const originalCancelAnimationFrame = window.cancelAnimationFrame;
+const originalPictureInPictureEnabled = Object.getOwnPropertyDescriptor(
+  document,
+  "pictureInPictureEnabled",
+);
+const originalRequestPictureInPicture =
+  HTMLVideoElement.prototype.requestPictureInPicture;
 
 afterEach(() => {
   jest.useRealTimers();
@@ -33,6 +39,21 @@ afterEach(() => {
   });
   window.requestAnimationFrame = originalRequestAnimationFrame;
   window.cancelAnimationFrame = originalCancelAnimationFrame;
+  if (originalPictureInPictureEnabled) {
+    Object.defineProperty(
+      document,
+      "pictureInPictureEnabled",
+      originalPictureInPictureEnabled,
+    );
+  } else {
+    delete document.pictureInPictureEnabled;
+  }
+  if (originalRequestPictureInPicture) {
+    HTMLVideoElement.prototype.requestPictureInPicture =
+      originalRequestPictureInPicture;
+  } else {
+    delete HTMLVideoElement.prototype.requestPictureInPicture;
+  }
 });
 
 const setDebugFpsQuery = () => {
@@ -87,6 +108,23 @@ const mockViewport = ({ width, height, maxTouchPoints = 0 }) => {
     configurable: true,
     value: maxTouchPoints,
   });
+};
+
+const mockPictureInPictureSupport = ({
+  documentEnabled = true,
+  videoEnabled = true,
+  requestPictureInPicture = jest.fn(() => Promise.resolve()),
+} = {}) => {
+  Object.defineProperty(document, "pictureInPictureEnabled", {
+    configurable: true,
+    value: documentEnabled,
+  });
+
+  if (videoEnabled) {
+    HTMLVideoElement.prototype.requestPictureInPicture = requestPictureInPicture;
+  } else {
+    delete HTMLVideoElement.prototype.requestPictureInPicture;
+  }
 };
 
 const renderPlayer = () => {
@@ -306,6 +344,71 @@ test("desktop fullscreen prefers the custom player container", () => {
 
   expect(player.requestFullscreen).toHaveBeenCalledTimes(1);
   expect(video.webkitEnterFullscreen).not.toHaveBeenCalled();
+});
+
+test("renders Picture-in-Picture control when supported", async () => {
+  mockPictureInPictureSupport();
+
+  renderPlayer();
+
+  expect(await screen.findByLabelText("Hình trong hình")).toBeInTheDocument();
+  const icon = screen.getByTestId("picture-in-picture-icon");
+
+  expect(icon).toBeInTheDocument();
+  expect(icon.tagName.toLowerCase()).toBe("svg");
+  expect(icon.querySelectorAll("rect")).toHaveLength(2);
+  expect(icon.querySelector("path")).not.toBeInTheDocument();
+});
+
+test("requests Picture-in-Picture from the control", async () => {
+  mockPictureInPictureSupport();
+  const { video } = renderPlayer();
+
+  fireEvent.click(await screen.findByLabelText("Hình trong hình"));
+
+  expect(video.requestPictureInPicture).toHaveBeenCalledTimes(1);
+});
+
+test("keeps player usable when Picture-in-Picture request is rejected", async () => {
+  mockPictureInPictureSupport({
+    requestPictureInPicture: jest.fn(() => Promise.reject(new Error("blocked"))),
+  });
+  const { video } = renderPlayer();
+
+  fireEvent.click(await screen.findByLabelText("Hình trong hình"));
+  await act(() => Promise.resolve());
+
+  expect(video.requestPictureInPicture).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText("Không thể phát video")).not.toBeInTheDocument();
+});
+
+test("updates Picture-in-Picture control label from browser events", async () => {
+  mockPictureInPictureSupport();
+  const { video } = renderPlayer();
+
+  expect(await screen.findByLabelText("Hình trong hình")).toBeInTheDocument();
+
+  fireEvent(video, new Event("enterpictureinpicture"));
+  expect(screen.getByLabelText("Thoát hình trong hình")).toBeInTheDocument();
+
+  fireEvent(video, new Event("leavepictureinpicture"));
+  expect(screen.getByLabelText("Hình trong hình")).toBeInTheDocument();
+});
+
+test("hides Picture-in-Picture control when document support is missing", () => {
+  mockPictureInPictureSupport({ documentEnabled: false });
+
+  renderPlayer();
+
+  expect(screen.queryByLabelText("Hình trong hình")).not.toBeInTheDocument();
+});
+
+test("hides Picture-in-Picture control when video support is missing", () => {
+  mockPictureInPictureSupport({ videoEnabled: false });
+
+  renderPlayer();
+
+  expect(screen.queryByLabelText("Hình trong hình")).not.toBeInTheDocument();
 });
 
 test("desktop surface click toggles playback", () => {

@@ -15,6 +15,19 @@ const formatVideoTime = (value) => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
+const PictureInPictureIcon = () => (
+  <svg
+    className="custom-video-player__picture-in-picture-icon"
+    data-testid="picture-in-picture-icon"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <rect className="custom-video-player__picture-in-picture-screen" x="3" y="5" width="18" height="14" rx="2" />
+    <rect className="custom-video-player__picture-in-picture-window" x="13" y="12" width="6" height="4" rx="1" />
+  </svg>
+);
+
 const CustomVideoPlayerChrome = ({
   title,
   episodeLabel,
@@ -25,6 +38,8 @@ const CustomVideoPlayerChrome = ({
   onSeekForward,
   onToggleMute,
   onVolumeChange,
+  canUsePictureInPicture,
+  onTogglePictureInPicture,
   onToggleFullscreen,
 }) => {
   const {
@@ -35,6 +50,7 @@ const CustomVideoPlayerChrome = ({
     volume,
     isMuted,
     isFullscreen,
+    isPictureInPicture,
   } = playbackState;
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const volumePercent = `${(isMuted ? 0 : volume) * 100}%`;
@@ -113,6 +129,16 @@ const CustomVideoPlayerChrome = ({
             style={{ "--progress": volumePercent }}
           />
         </div>
+        {canUsePictureInPicture && (
+          <button
+            className="custom-video-player__control-btn custom-video-player__control-btn--picture-in-picture"
+            type="button"
+            onClick={onTogglePictureInPicture}
+            aria-label={isPictureInPicture ? "Thoát hình trong hình" : "Hình trong hình"}
+          >
+            <PictureInPictureIcon />
+          </button>
+        )}
         <button
           className="custom-video-player__control-btn custom-video-player__control-btn--fullscreen"
           type="button"
