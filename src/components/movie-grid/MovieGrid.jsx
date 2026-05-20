@@ -99,7 +99,7 @@ import MovieCard from "../movie-card/MovieCard";
 const MOVIE_GRID_PAGE_SIZE = 28;
 const MOVIE_GRID_SKELETONS = Array.from(
   { length: MOVIE_GRID_PAGE_SIZE },
-  (_, index) => index,
+  (_, skeletonNumber) => `movie-grid-skeleton-${skeletonNumber + 1}`,
 );
 
 const MovieGrid = (props) => {
@@ -221,9 +221,9 @@ const MovieGrid = (props) => {
               />
             ))
           : isLoading
-            ? MOVIE_GRID_SKELETONS.map((index) => (
+            ? MOVIE_GRID_SKELETONS.map((skeletonKey) => (
                 <div
-                  key={index}
+                  key={skeletonKey}
                   className="movie-grid__skeleton"
                   aria-hidden="true"
                 />

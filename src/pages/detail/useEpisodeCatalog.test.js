@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { useEpisodeCatalog } from "./useEpisodeCatalog";
+import { buildEpisodeGroups, useEpisodeCatalog } from "./useEpisodeCatalog";
 
 const itemWithTwoGroups = {
   episode_current: "Tập 2",
@@ -26,6 +26,22 @@ test("resolves the initial episode from the URL across grouped servers", () => {
   expect(result.current.currentEpisode.name).toBe("2");
   expect(result.current.currentEpisodeIndex).toBe(1);
   expect(result.current.allEpisodeGroups[0].title).toBe("Vietsub");
+});
+
+test("skips empty episode groups while preserving original group identity", () => {
+  const groups = buildEpisodeGroups([
+    { server_name: "Empty", server_data: [] },
+    { server_name: "Thuyết minh", server_data: [{ name: "1", slug: "tap-1" }] },
+  ]);
+
+  expect(groups).toHaveLength(1);
+  expect(groups[0].title).toBe("Thuyết minh");
+  expect(groups[0].episodes[0]).toMatchObject({
+    episodeGroupIndex: 1,
+    episodeGroupName: "Thuyết minh",
+    episodeGroupTitle: "Thuyết minh",
+    episodeKey: "1:tap-1",
+  });
 });
 
 test("selecting a flattened episode updates the current episode without rebuilding the item", () => {

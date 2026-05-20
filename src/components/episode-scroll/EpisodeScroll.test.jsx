@@ -77,6 +77,45 @@ test("renders only the active episode group in tab mode", () => {
   expect(screen.queryByLabelText("Phần 1 Tập 1")).not.toBeInTheDocument();
 });
 
+test("selects the compacted tab that contains the current episode", () => {
+  const secondServerEpisode = {
+    name: "1",
+    slug: "tap-1",
+    episodeKey: "1:tap-1",
+    episodeGroupIndex: 1,
+    episodeGroupTitle: "Thuyết minh",
+  };
+  const thirdServerEpisode = {
+    name: "1",
+    slug: "tap-1",
+    episodeKey: "2:tap-1",
+    episodeGroupIndex: 2,
+    episodeGroupTitle: "Lồng tiếng",
+  };
+
+  render(
+    <EpisodeScroll
+      episodes={[secondServerEpisode, thirdServerEpisode]}
+      episodeGroups={[
+        { title: "Thuyết minh", episodes: [secondServerEpisode] },
+        { title: "Lồng tiếng", episodes: [thirdServerEpisode] },
+      ]}
+      currentEpisode={secondServerEpisode}
+      onSelectEpisode={jest.fn()}
+    />,
+  );
+
+  expect(screen.getByRole("tab", { name: /Thuyết minh/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  expect(screen.getByLabelText("Thuyết minh Tập 1")).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  expect(screen.queryByLabelText("Lồng tiếng Tập 1")).not.toBeInTheDocument();
+});
+
 test("switching tabs does not select an episode", () => {
   const seasonOneEpisode = {
     name: "1",

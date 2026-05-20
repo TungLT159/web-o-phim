@@ -1,10 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import tmdbApi from "../../api/tmdbApi";
 
+const LOAD_ERROR_MESSAGE =
+  "Không tải được dữ liệu phim. Vui lòng kiểm tra lại đường dẫn hoặc thử lại sau.";
+
+const initialDetailState = {
+  item: null,
+  itemRouteKey: null,
+  loadError: null,
+};
+
+const detailReducer = (state, action) => {
+  switch (action.type) {
+    case "loading":
+      return initialDetailState;
+    case "loaded":
+      return {
+        item: action.item,
+        itemRouteKey: action.routeKey,
+        loadError: null,
+      };
+    case "failed":
+      return {
+        item: null,
+        itemRouteKey: null,
+        loadError: LOAD_ERROR_MESSAGE,
+      };
+    default:
+      return state;
+  }
+};
+
 export const useMovieDetail = (category, id) => {
-  const [item, setItem] = useState(null);
-  const [itemRouteKey, setItemRouteKey] = useState(null);
-  const [loadError, setLoadError] = useState(null);
+  const [state, dispatch] = useReducer(detailReducer, initialDetailState);
   const routeKey = `${category}/${id}`;
 
   useEffect(() => {
@@ -12,22 +40,17 @@ export const useMovieDetail = (category, id) => {
 
     const loadDetail = async () => {
       try {
-        setLoadError(null);
-        setItem(null);
-        setItemRouteKey(null);
+        dispatch({ type: "loading" });
+        if (isCancelled) return;
+
         const response = await tmdbApi.detail(category, id, { params: {} });
         if (isCancelled) return;
-        setItem(response.data.item);
-        setItemRouteKey(routeKey);
+        dispatch({ type: "loaded", item: response.data.item, routeKey });
         window.scrollTo(0, 0);
       } catch (error) {
         if (isCancelled) return;
         console.error("Error loading movie detail:", error);
-        setItem(null);
-        setItemRouteKey(null);
-        setLoadError(
-          "Không tải được dữ liệu phim. Vui lòng kiểm tra lại đường dẫn hoặc thử lại sau.",
-        );
+        dispatch({ type: "failed" });
       }
     };
 
@@ -38,5 +61,8 @@ export const useMovieDetail = (category, id) => {
     };
   }, [category, id, routeKey]);
 
-  return { item: itemRouteKey === routeKey ? item : null, loadError };
+  return {
+    item: state.itemRouteKey === routeKey ? state.item : null,
+    loadError: state.loadError,
+  };
 };

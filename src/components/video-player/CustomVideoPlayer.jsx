@@ -4,22 +4,8 @@ import {
   calculatePlaybackFps,
   getPlaybackQualitySnapshot,
 } from "../../utils/videoPlaybackMetrics";
+import CustomVideoPlayerChrome from "./CustomVideoPlayerChrome";
 import "./custom-video-player.scss";
-
-const formatVideoTime = (value) => {
-  if (!Number.isFinite(value) || value <= 0) return "00:00";
-
-  const totalSeconds = Math.floor(value);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
-
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-};
 
 const shouldUseNativeControls = () => {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -420,9 +406,6 @@ const CustomVideoPlayer = ({
     );
   }
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const volumePercent = `${(isMuted ? 0 : volume) * 100}%`;
-  const volumeIcon = isMuted || volume === 0 ? "bx-volume-mute" : "bx-volume-full";
   const episodeLabel = episodeName
     ? [episodeGroupTitle, formatEpisodeDisplayName(episodeName)]
         .filter(Boolean)
@@ -486,88 +469,26 @@ const CustomVideoPlayer = ({
 
       {fpsDebugOverlay}
 
-      <div
-        className="custom-video-player__chrome custom-video-player__chrome--pass-through"
-        aria-hidden={!showControls && isPlaying}
-      >
-        <div className="custom-video-player__meta custom-video-player__meta--pass-through">
-          <span>{title || "Đang xem phim"}</span>
-          {episodeLabel && <strong>{episodeLabel}</strong>}
-        </div>
-
-        <div className="custom-video-player__progress-row">
-          <span>{formatVideoTime(currentTime)}</span>
-          <input
-            className="custom-video-player__progress"
-            type="range"
-            min="0"
-            max={duration || 0}
-            step="0.1"
-            value={currentTime}
-            onChange={handleSeek}
-            aria-label="Tua video"
-            style={{ "--progress": `${progressPercent}%` }}
-          />
-          <span>{formatVideoTime(duration)}</span>
-        </div>
-
-        <div className="custom-video-player__controls custom-video-player__controls--primary">
-          <button
-            className="custom-video-player__control-btn custom-video-player__control-btn--play"
-            type="button"
-            onClick={togglePlay}
-            aria-label={isPlaying ? "Tạm dừng" : "Phát"}
-          >
-            <i className={`bx ${isPlaying ? "bx-pause" : "bx-play"}`} />
-          </button>
-          <button
-            className="custom-video-player__control-btn custom-video-player__control-btn--rewind"
-            type="button"
-            onClick={() => seekBy(-10)}
-            aria-label="Tua lùi 10 giây"
-          >
-            <i className="bx bx-rewind" />
-            <span>10</span>
-          </button>
-          <button
-            className="custom-video-player__control-btn custom-video-player__control-btn--forward"
-            type="button"
-            onClick={() => seekBy(10)}
-            aria-label="Tua tới 10 giây"
-          >
-            <i className="bx bx-fast-forward" />
-            <span>10</span>
-          </button>
-          <div className="custom-video-player__volume">
-            <button
-              className="custom-video-player__control-btn custom-video-player__control-btn--mute"
-              type="button"
-              onClick={toggleMute}
-              aria-label={isMuted ? "Bật âm" : "Tắt âm"}
-            >
-              <i className={`bx ${volumeIcon}`} />
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              aria-label="Âm lượng"
-              style={{ "--progress": volumePercent }}
-            />
-          </div>
-          <button
-            className="custom-video-player__control-btn custom-video-player__control-btn--fullscreen"
-            type="button"
-            onClick={toggleFullscreen}
-            aria-label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
-          >
-            <i className={`bx ${isFullscreen ? "bx-exit-fullscreen" : "bx-fullscreen"}`} />
-          </button>
-        </div>
-      </div>
+      <CustomVideoPlayerChrome
+        title={title}
+        episodeLabel={episodeLabel}
+        playbackState={{
+          showControls,
+          isPlaying,
+          currentTime,
+          duration,
+          volume,
+          isMuted,
+          isFullscreen,
+        }}
+        onSeek={handleSeek}
+        onTogglePlay={togglePlay}
+        onSeekBackward={() => seekBy(-10)}
+        onSeekForward={() => seekBy(10)}
+        onToggleMute={toggleMute}
+        onVolumeChange={handleVolumeChange}
+        onToggleFullscreen={toggleFullscreen}
+      />
     </div>
   );
 };

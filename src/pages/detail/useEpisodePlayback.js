@@ -60,6 +60,7 @@ export const useEpisodePlayback = ({
 
     const loadVideoSource = async () => {
       setPlaybackError(null);
+      if (isCancelled) return;
 
       try {
         const episodeLink = await getEpisodeLink(
@@ -113,7 +114,7 @@ export const useEpisodePlayback = ({
       }
     };
 
-    loadVideoSource();
+    void loadVideoSource();
 
     return () => {
       isCancelled = true;

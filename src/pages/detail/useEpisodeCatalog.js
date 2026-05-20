@@ -3,23 +3,31 @@ import { formatEpisodeGroupTitle } from "../../utils/episodeGroupTitle";
 
 export const getEpisodeIdentity = (episode) => episode?.episodeKey || episode?.name;
 
-export const buildEpisodeGroups = (episodes = []) =>
-  episodes
-    .map((server, groupIndex) => {
-      const title = formatEpisodeGroupTitle(server.server_name, groupIndex);
+export const buildEpisodeGroups = (episodes = []) => {
+  const groups = [];
 
-      return {
-        title,
-        episodes: (server.server_data || []).map((episode, episodeIndex) => ({
-          ...episode,
-          episodeGroupIndex: groupIndex,
-          episodeGroupName: server.server_name,
-          episodeGroupTitle: title,
-          episodeKey: `${groupIndex}:${episode.slug || episode.name || episodeIndex}`,
-        })),
-      };
-    })
-    .filter((group) => group.episodes.length > 0);
+  for (let groupIndex = 0; groupIndex < episodes.length; groupIndex += 1) {
+    const server = episodes[groupIndex];
+    const serverEpisodes = server.server_data || [];
+
+    if (!serverEpisodes.length) continue;
+
+    const title = formatEpisodeGroupTitle(server.server_name, groupIndex);
+
+    groups.push({
+      title,
+      episodes: serverEpisodes.map((episode, episodeIndex) => ({
+        ...episode,
+        episodeGroupIndex: groupIndex,
+        episodeGroupName: server.server_name,
+        episodeGroupTitle: title,
+        episodeKey: `${groupIndex}:${episode.slug || episode.name || episodeIndex}`,
+      })),
+    });
+  }
+
+  return groups;
+};
 
 const findEpisodeFromUrl = (episodeList, epFromUrl) => {
   if (!epFromUrl) return null;

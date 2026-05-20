@@ -1,19 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatEpisodeDisplayName } from "../../utils/episodeDisplayName";
+import EpisodeList, {
+  DEFAULT_COLUMNS,
+  DEFAULT_VISIBLE_ROWS,
+  EPISODE_ROW_GAP,
+  EPISODE_ROW_HEIGHT,
+  VIRTUAL_ITEM_LIMIT,
+  getEpisodeIdentity,
+} from "./EpisodeList";
 import "./episode-scroll.scss";
 
-const VIRTUAL_ITEM_LIMIT = 40;
-const DEFAULT_COLUMNS = 8;
-const DEFAULT_VISIBLE_ROWS = 6;
-const EPISODE_ROW_HEIGHT = 60;
-const EPISODE_ROW_GAP = 12;
-const VIRTUAL_OVERSCAN_ROWS = 2;
 const EMPTY_EPISODES = [];
 const NOOP = () => {};
-
-const getEpisodeIdentity = (episode) =>
-  episode?.episodeKey ||
-  `${episode?.episodeGroupTitle || ""}:${episode?.slug || episode?.name || ""}`;
 
 const EpisodeScroll = ({
   episodes = EMPTY_EPISODES,
@@ -41,9 +38,18 @@ const EpisodeScroll = ({
   }, [episodes]);
 
   const hasGroups = episodeGroups.length > 0;
-  const currentGroupIndex = currentEpisode?.episodeGroupIndex ?? 0;
   const activeGroup = episodeGroups[activeGroupIndex];
   const currentEpisodeKey = getEpisodeIdentity(currentEpisode);
+  const currentGroupIndex = hasGroups
+    ? Math.max(
+        0,
+        episodeGroups.findIndex((group) =>
+          group.episodes.some(
+            (episode) => getEpisodeIdentity(episode) === currentEpisodeKey,
+          ),
+        ),
+      )
+    : 0;
 
   const resetEpisodeScroll = useCallback(() => {
     setVirtualScrollTop(0);
@@ -136,75 +142,7 @@ const EpisodeScroll = ({
     virtualColumns,
   ]);
 
-  // // Xử lý keyboard navigation (TV remote & keyboard)
-  // useEffect(() => {
-  //   const handleKeyDown = (e) => {
-  //     if (!episodes || episodes.length === 0) return;
-
-  //     // Bỏ qua nếu người dùng đang gõ trong input hoặc textarea
-  //     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-  //       return;
-  //     }
-
-  //     const currentIndex = focusedIndex >= 0 ? focusedIndex : 0;
-  //     let newIndex = currentIndex;
-
-  //     switch (e.key) {
-  //       case "ArrowRight":
-  //         e.preventDefault();
-  //         newIndex = Math.min(currentIndex + 1, episodes.length - 1);
-  //         break;
-  //       case "ArrowLeft":
-  //         e.preventDefault();
-  //         newIndex = Math.max(currentIndex - 1, 0);
-  //         break;
-  //       case "ArrowDown":
-  //         e.preventDefault();
-  //         // Di chuyển xuống 1 hàng (giả sử 5 tập/hàng trên desktop)
-  //         newIndex = Math.min(currentIndex + 5, episodes.length - 1);
-  //         break;
-  //       case "ArrowUp":
-  //         e.preventDefault();
-  //         // Di chuyển lên 1 hàng
-  //         newIndex = Math.max(currentIndex - 5, 0);
-  //         break;
-  //       case "Enter":
-  //       case " ":
-  //         e.preventDefault();
-  //         if (focusedIndex >= 0 && episodes[focusedIndex]) {
-  //           onSelectEpisode(episodes[focusedIndex]);
-  //         }
-  //         break;
-  //       case "Home":
-  //         e.preventDefault();
-  //         newIndex = 0;
-  //         break;
-  //       case "End":
-  //         e.preventDefault();
-  //         newIndex = episodes.length - 1;
-  //         break;
-  //       default:
-  //         return;
-  //     }
-
-  //     if (newIndex !== currentIndex) {
-  //       setFocusedIndex(newIndex);
-  //       // Scroll đến episode được focus
-  //       episodeRefs.current[newIndex]?.scrollIntoView({
-  //         behavior: "smooth",
-  //         block: "nearest",
-  //         inline: "center",
-  //       });
-  //       // Focus vào button
-  //       episodeRefs.current[newIndex]?.focus();
-  //     }
-  //   };
-
-  //   window.addEventListener("keydown", handleKeyDown);
-  //   return () => window.removeEventListener("keydown", handleKeyDown);
-  // }, [episodes, focusedIndex, onSelectEpisode]);
-
-  const handleEpisodeClick = (ep, index) => {
+  const handleEpisodeClick = (ep) => {
     onSelectEpisode(ep);
   };
 
@@ -228,105 +166,6 @@ const EpisodeScroll = ({
       setVirtualScrollTop(nextScrollTop);
       scrollFrameRef.current = null;
     });
-  };
-
-  const getVirtualWindow = (items) => {
-    if (!items || items.length <= VIRTUAL_ITEM_LIMIT) {
-      return {
-        items: items || [],
-        startIndex: 0,
-        totalHeight: 0,
-        offsetTop: 0,
-        isVirtual: false,
-      };
-    }
-
-    const rowStride = EPISODE_ROW_HEIGHT + EPISODE_ROW_GAP;
-    const firstVisibleRow = Math.floor(virtualScrollTop / rowStride);
-    const startRow = Math.max(0, firstVisibleRow - VIRTUAL_OVERSCAN_ROWS);
-    const endRow = Math.min(
-      Math.ceil(items.length / virtualColumns),
-      firstVisibleRow + virtualVisibleRows + VIRTUAL_OVERSCAN_ROWS,
-    );
-    const startIndex = startRow * virtualColumns;
-    const endIndex = Math.min(items.length, endRow * virtualColumns);
-
-    return {
-      items: items.slice(startIndex, endIndex),
-      startIndex,
-      totalHeight: Math.ceil(items.length / virtualColumns) * rowStride,
-      offsetTop: startRow * rowStride,
-      isVirtual: true,
-    };
-  };
-
-  const renderEpisodeButton = (ep, index, labelPrefix = "") => {
-    const episodeKey = getEpisodeIdentity(ep);
-    const episodeIndex = episodeIndexByKey.get(episodeKey) ?? index;
-    const isCurrent = currentEpisodeKey === episodeKey;
-    const ariaLabel = `${labelPrefix}${formatEpisodeDisplayName(ep.name)}`;
-
-    return (
-      <button
-        key={episodeKey || index}
-        ref={(el) => (episodeRefs.current[episodeIndex] = el)}
-        className={`episode-btn ${isCurrent ? "active" : ""}`}
-        onClick={() => handleEpisodeClick(ep, episodeIndex)}
-        tabIndex={0}
-        aria-label={ariaLabel}
-        aria-current={isCurrent ? "true" : "false"}
-      >
-        <span className="episode-btn__number">
-          {formatEpisodeDisplayName(ep.name)}
-        </span>
-      </button>
-    );
-  };
-
-  const renderEpisodeList = (items, labelPrefix = "") => {
-    const virtualWindow = getVirtualWindow(items);
-    const listClassName = `episode-list ${
-      virtualWindow.isVirtual ? "episode-list--virtual" : ""
-    }`;
-
-    if (!virtualWindow.isVirtual) {
-      return (
-        <div className={listClassName} ref={episodeListRef}>
-          {virtualWindow.items.map((ep, offset) =>
-            renderEpisodeButton(ep, virtualWindow.startIndex + offset, labelPrefix),
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div
-        className={listClassName}
-        ref={episodeListRef}
-        onScroll={handleVirtualScroll}
-      >
-        <div
-          className="episode-list__virtual-spacer"
-          style={{ height: virtualWindow.totalHeight }}
-        >
-          <div
-            className="episode-list__virtual-grid"
-            style={{
-              gridTemplateColumns: `repeat(${virtualColumns}, minmax(0, 1fr))`,
-              transform: `translateY(${virtualWindow.offsetTop}px)`,
-            }}
-          >
-            {virtualWindow.items.map((ep, offset) =>
-              renderEpisodeButton(
-                ep,
-                virtualWindow.startIndex + offset,
-                labelPrefix,
-              ),
-            )}
-          </div>
-        </div>
-      </div>
-    );
   };
 
   if (!episodes || episodes.length === 0) {
@@ -373,12 +212,35 @@ const EpisodeScroll = ({
 
           {activeGroup && (
             <div className="episode-group episode-group--active">
-              {renderEpisodeList(activeGroup.episodes, `${activeGroup.title} `)}
+              <EpisodeList
+                items={activeGroup.episodes}
+                labelPrefix={`${activeGroup.title} `}
+                currentEpisodeKey={currentEpisodeKey}
+                episodeIndexByKey={episodeIndexByKey}
+                episodeRefs={episodeRefs}
+                listRef={episodeListRef}
+                onEpisodeClick={handleEpisodeClick}
+                onVirtualScroll={handleVirtualScroll}
+                virtualColumns={virtualColumns}
+                virtualScrollTop={virtualScrollTop}
+                virtualVisibleRows={virtualVisibleRows}
+              />
             </div>
           )}
         </>
       ) : (
-        renderEpisodeList(episodes)
+        <EpisodeList
+          items={episodes}
+          currentEpisodeKey={currentEpisodeKey}
+          episodeIndexByKey={episodeIndexByKey}
+          episodeRefs={episodeRefs}
+          listRef={episodeListRef}
+          onEpisodeClick={handleEpisodeClick}
+          onVirtualScroll={handleVirtualScroll}
+          virtualColumns={virtualColumns}
+          virtualScrollTop={virtualScrollTop}
+          virtualVisibleRows={virtualVisibleRows}
+        />
       )}
 
       {/* <div className="episode-scroll__hint">

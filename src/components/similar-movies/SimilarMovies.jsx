@@ -11,6 +11,8 @@ const SimilarMovies = ({ movie }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isCancelled = false;
+
     const getSimilarMovies = async () => {
       if (!movie) return;
 
@@ -56,29 +58,32 @@ const SimilarMovies = ({ movie }) => {
             .filter((word) => word.length > 3)
             .slice(0, 3); // Lấy 3 từ khóa đầu
 
-          for (const keyword of keywords) {
-            try {
-              const keywordResponse = await axiosClient.get(
-                `/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=8`,
-              );
+          const keywordResults = await Promise.all(
+            keywords.map(async (keyword) => {
+              try {
+                const keywordResponse = await axiosClient.get(
+                  `/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=8`,
+                );
 
-              if (keywordResponse.data?.items) {
-                keywordResponse.data.items.forEach((item) => {
-                  if (!seenIds.has(item._id) && allMovies.length < 20) {
-                    allMovies.push({ ...item, priority: 3 });
-                    seenIds.add(item._id);
-                  }
-                });
+                return keywordResponse.data?.items || [];
+              } catch (error) {
+                console.log(
+                  `Không tìm thấy phim theo từ khóa "${keyword}":`,
+                  error,
+                );
+                return [];
               }
-            } catch (error) {
-              console.log(
-                `Không tìm thấy phim theo từ khóa "${keyword}":`,
-                error,
-              );
-            }
+            }),
+          );
 
-            if (allMovies.length >= 20) break;
-          }
+          keywordResults.forEach((items) => {
+            items.forEach((item) => {
+              if (!seenIds.has(item._id) && allMovies.length < 20) {
+                allMovies.push({ ...item, priority: 3 });
+                seenIds.add(item._id);
+              }
+            });
+          });
         }
 
         // 4. Ưu tiên 4: Tìm theo thể loại
@@ -90,29 +95,32 @@ const SimilarMovies = ({ movie }) => {
           // Lấy tối đa 3 thể loại đầu tiên
           const categories = movie.category.slice(0, 3);
 
-          for (const cat of categories) {
-            try {
-              const categoryResponse = await axiosClient.get(
-                `/v1/api/the-loai/${cat.slug}?page=1&limit=12`,
-              );
+          const categoryResults = await Promise.all(
+            categories.map(async (cat) => {
+              try {
+                const categoryResponse = await axiosClient.get(
+                  `/v1/api/the-loai/${cat.slug}?page=1&limit=12`,
+                );
 
-              if (categoryResponse.data?.items) {
-                categoryResponse.data.items.forEach((item) => {
-                  if (!seenIds.has(item._id) && allMovies.length < 20) {
-                    allMovies.push({ ...item, priority: 4 });
-                    seenIds.add(item._id);
-                  }
-                });
+                return categoryResponse.data?.items || [];
+              } catch (error) {
+                console.log(
+                  `Không tìm thấy phim theo thể loại "${cat.name}":`,
+                  error,
+                );
+                return [];
               }
-            } catch (error) {
-              console.log(
-                `Không tìm thấy phim theo thể loại "${cat.name}":`,
-                error,
-              );
-            }
+            }),
+          );
 
-            if (allMovies.length >= 20) break;
-          }
+          categoryResults.forEach((items) => {
+            items.forEach((item) => {
+              if (!seenIds.has(item._id) && allMovies.length < 20) {
+                allMovies.push({ ...item, priority: 4 });
+                seenIds.add(item._id);
+              }
+            });
+          });
         }
 
         // 5. Sắp xếp theo độ ưu tiên và điểm đánh giá
@@ -128,15 +136,22 @@ const SimilarMovies = ({ movie }) => {
         });
 
         // Lấy tối đa 20 phim
+        if (isCancelled) return;
         setItems(allMovies.slice(0, 20));
       } catch (error) {
+        if (isCancelled) return;
         console.error("Lỗi khi lấy phim tương tự:", error);
       } finally {
+        if (isCancelled) return;
         setLoading(false);
       }
     };
 
     getSimilarMovies();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [movie]);
 
   if (loading) {

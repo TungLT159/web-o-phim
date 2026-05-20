@@ -11,17 +11,16 @@ import {
   saveWatchProgress,
   getWatchProgress,
   shouldShowContinueWatching,
-  formatTime,
 } from "../../utils/watchHistoryManager";
 import "./detail.scss";
-import { Helmet } from "react-helmet";
 import SimilarMovies from "../../components/similar-movies/SimilarMovies";
-import EpisodeScroll from "../../components/episode-scroll/EpisodeScroll";
-import CustomVideoPlayer from "../../components/video-player/CustomVideoPlayer";
 import { formatEpisodeDisplayName } from "../../utils/episodeDisplayName";
 import { useMovieDetail } from "./useMovieDetail";
 import { getEpisodeIdentity, useEpisodeCatalog } from "./useEpisodeCatalog";
 import { useEpisodePlayback } from "./useEpisodePlayback";
+import DetailLoading from "./DetailLoading";
+import DetailSeo from "./DetailSeo";
+import WatchSection from "./WatchSection";
 
 const getEpisodeProgressKey = (episode) => getEpisodeIdentity(episode);
 const AUTO_PLAY_STORAGE_KEY = "autoPlayEnabled:v1";
@@ -412,38 +411,6 @@ const Detail = () => {
     handleNextEpisode,
   ]);
 
-  // Get absolute image URL for social sharing
-  const getAbsoluteImageUrl = useCallback((imageUrl) => {
-    if (!imageUrl) return `${window.location.origin}/poster-mau.png`;
-    if (imageUrl.startsWith("http")) return imageUrl;
-    return `${window.location.origin}${imageUrl}`;
-  }, []);
-
-  // Generate structured data for SEO
-  const structuredData = useMemo(() => {
-    if (!item) return null;
-
-    return {
-      "@context": "https://schema.org",
-      "@type": "Movie",
-      name: item.title || item.name,
-      description: overview || item.content?.replace(/<[^>]+>/g, ""),
-      image: getAbsoluteImageUrl(poster_url),
-      datePublished: item.year,
-      genre: item.category?.map((cat) => cat.name).join(", "),
-      contentRating: item.quality,
-      inLanguage: item.lang || "vi",
-      duration: item.time,
-      aggregateRating: item.tmdb?.vote_average
-        ? {
-            "@type": "AggregateRating",
-            ratingValue: item.tmdb.vote_average,
-            ratingCount: item.tmdb.vote_count,
-          }
-        : undefined,
-    };
-  }, [item, overview, poster_url, getAbsoluteImageUrl]);
-
   const isLoadingDetail = !item && !loadError;
 
   return (
@@ -453,139 +420,18 @@ const Detail = () => {
           <h2>{loadError}</h2>
         </div>
       )}
-      {isLoadingDetail && (
-        <div
-          className="detail-loading"
-          role="status"
-          aria-label="Đang tải phim"
-        >
-          <div className="banner detail-loading__banner"></div>
-
-          <div className="mb-3 movie-content container detail-loading__content">
-            <div className="movie-content__poster">
-              <div className="movie-content__poster__img detail-loading__poster"></div>
-            </div>
-            <div className="movie-content__info detail-loading__info">
-              <div className="detail-loading__line detail-loading__title"></div>
-              <div className="detail-loading__chips">
-                <span className="detail-loading__chip"></span>
-                <span className="detail-loading__chip"></span>
-                <span className="detail-loading__chip"></span>
-              </div>
-              <div className="detail-loading__tags">
-                <span className="detail-loading__tag"></span>
-                <span className="detail-loading__tag"></span>
-                <span className="detail-loading__tag"></span>
-              </div>
-              <div className="detail-loading__line"></div>
-              <div className="detail-loading__line detail-loading__line--wide"></div>
-              <div className="detail-loading__line detail-loading__line--short"></div>
-            </div>
-          </div>
-
-          <div className="container">
-            <div className="section mb-3">
-              <div className="watch-section detail-loading__watch">
-                <div className="video-player">
-                  <div className="video-wrapper detail-loading__video"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {isLoadingDetail && <DetailLoading />}
       {item && (
         <>
-          <Helmet>
-            <title>
-              {`${item.title || item.name} ${
-                currentEp ? `- ${currentEpisodeDisplayName}` : ""
-              } | Ổ Phim`}
-            </title>
-            <meta
-              name="description"
-              content={
-                overview ||
-                item.content?.replace(/<[^>]+>/g, "") ||
-                "Xem phim online chất lượng HD"
-              }
-            />
-            <meta
-              name="keywords"
-              content={`${item.title || item.name}, xem phim ${item.title || item.name}, ${item.category?.map((c) => c.name).join(", ")}, phim ${item.year}`}
-            />
-            <link rel="icon" href="/logo.png" />
-            <link
-              rel="canonical"
-              href={`${window.location.origin}/movie/${id}${currentEp ? `?ep=${getEpisodeIdentity(currentEp)}` : ""}`}
-            />
-
-            {/* Open Graph */}
-            <meta property="og:type" content="video.movie" />
-            <meta
-              property="og:title"
-              content={`${item.title || item.name} ${currentEp ? `- ${currentEpisodeDisplayName}` : ""}`}
-            />
-            <meta
-              property="og:description"
-              content={
-                overview ||
-                item.content?.replace(/<[^>]+>/g, "") ||
-                "Xem phim online chất lượng HD"
-              }
-            />
-            <meta
-              property="og:image"
-              content={getAbsoluteImageUrl(poster_url)}
-            />
-            <meta
-              property="og:image:secure_url"
-              content={getAbsoluteImageUrl(poster_url)}
-            />
-            <meta property="og:image:width" content="500" />
-            <meta property="og:image:height" content="750" />
-            <meta
-              property="og:image:alt"
-              content={`Poster phim ${item.title || item.name}`}
-            />
-            <meta property="og:image:type" content="image/jpeg" />
-            <meta
-              property="og:url"
-              content={`${window.location.origin}/movie/${id}`}
-            />
-            <meta property="og:site_name" content="Ổ Phim" />
-            <meta property="og:locale" content="vi_VN" />
-
-            {/* Twitter Card */}
-            <meta name="twitter:card" content="summary_large_image" />
-            <meta
-              name="twitter:title"
-              content={`${item.title || item.name} ${currentEp ? `- ${currentEpisodeDisplayName}` : ""}`}
-            />
-            <meta
-              name="twitter:description"
-              content={
-                overview ||
-                item.content?.replace(/<[^>]+>/g, "") ||
-                "Xem phim online chất lượng HD"
-              }
-            />
-            <meta
-              name="twitter:image"
-              content={getAbsoluteImageUrl(poster_url)}
-            />
-            <meta
-              name="twitter:image:alt"
-              content={`Poster phim ${item.title || item.name}`}
-            />
-
-            {/* Structured Data */}
-            {structuredData && (
-              <script type="application/ld+json">
-                {JSON.stringify(structuredData)}
-              </script>
-            )}
-          </Helmet>
+          <DetailSeo
+            item={item}
+            movieId={id}
+            overview={overview}
+            posterUrl={poster_url}
+            hasCurrentEpisode={Boolean(currentEp)}
+            currentEpisodeIdentity={currentEp ? getEpisodeIdentity(currentEp) : ""}
+            currentEpisodeDisplayName={currentEpisodeDisplayName}
+          />
 
           <div
             className="banner"
@@ -617,165 +463,29 @@ const Detail = () => {
 
           <div className="container">
             <div className="section mb-3">
-              <div className="watch-section">
-                <div className="video-player">
-                  <div
-                    className="video-wrapper"
-                    data-playback-error={playbackError || undefined}
-                  >
-                    {item.episode_current === "Trailer" ? (
-                      <iframe
-                        src={videoSource}
-                        title="video-player"
-                        frameBorder="0"
-                        allowFullScreen
-                      ></iframe>
-                    ) : (
-                      <CustomVideoPlayer
-                        videoRef={videoRef}
-                        title={item.title || item.name}
-                        episodeName={currentEp?.name}
-                        episodeGroupTitle={currentEp?.episodeGroupTitle}
-                      />
-                    )}
-                  </div>
-                  {playbackError && (
-                    <p className="playback-error" role="alert">
-                      {playbackError}
-                    </p>
-                  )}
-                </div>
-
-                {item.episode_current !== "Trailer" &&
-                  episodeList.length > 0 && (
-                    <>
-                      {/* Auto-play Toggle */}
-                      <div className="autoplay-toggle-container">
-                        <label className="autoplay-toggle">
-                          <input
-                            type="checkbox"
-                            checked={autoPlayEnabled}
-                            onChange={handleToggleAutoPlay}
-                          />
-                          <span className="toggle-slider"></span>
-                          <span className="toggle-label">
-                            <i className="bx bx-play-circle"></i>
-                            Tự động phát tập tiếp theo
-                          </span>
-                        </label>
-                      </div>
-
-                      {/* Next/Prev Episode Navigation */}
-                      <div className="episode-navigation">
-                        <button
-                          className="episode-nav-btn prev"
-                          onClick={handlePrevEpisode}
-                          disabled={currentEpisodeIndex <= 0}
-                        >
-                          <i className="bx bx-chevron-left"></i>
-                          <span>Tập trước</span>
-                        </button>
-
-                        <div className="current-episode-info">
-                          <span className="episode-label">Đang xem:</span>
-                          <span className="episode-number">
-                            {currentEpisodeDisplayName}
-                          </span>
-                        </div>
-
-                        <button
-                          className="episode-nav-btn next"
-                          onClick={handleNextEpisode}
-                          disabled={
-                            currentEpisodeIndex === -1 ||
-                            currentEpisodeIndex >= episodeList.length - 1
-                          }
-                        >
-                          <span>Tập tiếp</span>
-                          <i className="bx bx-chevron-right"></i>
-                        </button>
-                      </div>
-
-                      {/* Auto-play Notice */}
-                      {showAutoPlayNotice && autoPlayCountdown !== null && (
-                        <div className="autoplay-notice">
-                          <div className="autoplay-content">
-                            <i className="bx bx-play-circle"></i>
-                            <div className="autoplay-text">
-                              <p className="autoplay-title">
-                                Tự động phát tập tiếp theo
-                              </p>
-                              <p className="autoplay-countdown">
-                                {formatEpisodeDisplayName(
-                                  episodeList[currentEpisodeIndex + 1]?.name,
-                                )}{" "}
-                                sẽ phát sau {autoPlayCountdown} giây
-                              </p>
-                            </div>
-                            <button
-                              className="autoplay-cancel"
-                              onClick={handleCancelAutoPlay}
-                            >
-                              <i className="bx bx-x"></i>
-                              Hủy
-                            </button>
-                          </div>
-                          <div className="autoplay-progress">
-                            <div
-                              className="autoplay-progress-bar"
-                              style={{
-                                width: `${((10 - autoPlayCountdown) / 10) * 100}%`,
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Continue Watching Notice */}
-                      {showContinueWatching && savedProgress && (
-                        <div className="continue-watching-notice">
-                          <div className="continue-watching-content">
-                            <i className="bx bx-time-five"></i>
-                            <div className="continue-watching-text">
-                              <p className="continue-watching-title">
-                                Tiếp tục xem từ{" "}
-                                {formatTime(savedProgress.currentTime)}?
-                              </p>
-                              <p className="continue-watching-info">
-                                Bạn đã xem đến{" "}
-                                {Math.round(savedProgress.percentage)}% của tập
-                                này
-                              </p>
-                            </div>
-                            <div className="continue-watching-actions">
-                              <button
-                                className="continue-btn"
-                                onClick={handleContinueWatching}
-                              >
-                                <i className="bx bx-play"></i>
-                                Tiếp tục
-                              </button>
-                              <button
-                                className="restart-btn"
-                                onClick={handleStartFromBeginning}
-                              >
-                                <i className="bx bx-revision"></i>
-                                Xem lại từ đầu
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <EpisodeScroll
-                        episodes={episodeList}
-                        episodeGroups={episodeGroups}
-                        currentEpisode={currentEp}
-                        onSelectEpisode={handleSelectEpisode}
-                      />
-                    </>
-                  )}
-              </div>
+              <WatchSection
+                item={item}
+                videoRef={videoRef}
+                videoSource={videoSource}
+                playbackError={playbackError}
+                episodeList={episodeList}
+                episodeGroups={episodeGroups}
+                currentEpisode={currentEp}
+                currentEpisodeIndex={currentEpisodeIndex}
+                currentEpisodeDisplayName={currentEpisodeDisplayName}
+                autoPlayEnabled={autoPlayEnabled}
+                showAutoPlayNotice={showAutoPlayNotice}
+                autoPlayCountdown={autoPlayCountdown}
+                showContinueWatching={showContinueWatching}
+                savedProgress={savedProgress}
+                onToggleAutoPlay={handleToggleAutoPlay}
+                onPrevEpisode={handlePrevEpisode}
+                onNextEpisode={handleNextEpisode}
+                onCancelAutoPlay={handleCancelAutoPlay}
+                onContinueWatching={handleContinueWatching}
+                onStartFromBeginning={handleStartFromBeginning}
+                onSelectEpisode={handleSelectEpisode}
+              />
             </div>
 
             {showSecondaryContent && (
